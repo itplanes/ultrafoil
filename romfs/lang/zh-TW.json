@@ -1,293 +1,325 @@
 {
-    "main": {
-        "menu": {
-            "sd": "通過SD卡安裝",
-            "hdd": "通過 USB SSD/HDD 安裝",
-            "net": "通過網路安裝",
-            "shop": "通過 eShop 安裝",
-            "usb": "透過 NS-USBloader 安裝",
-            "mtp": "透過 MTP 安裝",
-            "backup": "備份存檔資料",
-            "sig": "管理簽名補丁（signature patches）",
-            "set": "設置",
-            "exit": "退出"
-        },
-        "net": {
-            "title": "連接錯誤",
-            "desc": "請確認關閉飛行模式，並確保網路連接暢通。"
-        },
-        "usb": {
-            "warn": {
-                "title": "警告！",
-                "desc": "USB安裝方式不一定能“正常工作”。\n如果您不幸遇到這樣的情況，那就用力扯自己的頭髮吧！\n推薦在PC端使用NS-USBloader配合安裝。\n還是不行就通過網路安裝吧...",
-                "opt1": "不再對此進行警告"
-            },
-            "error": {
-                "title": "USB未連接",
-                "desc": "請通過USB線連接您的遠程設備"
-            }
-        },
-        "hdd": {
-            "title": "未偵測到 USB 裝置",
-            "notfound": "請連接 USB SSD 或硬碟後再進行安裝。"
-        },
-        "applet": {
-            "title": "不支援Applet模式",
-            "desc": "您可以嘗試在“Applet模式”下使用本程式,但如果出現問題請切換到“非Applet模式”再運行。\n切換方法：\n 退回系統桌面選中任意一個遊戲，按住後點進入遊戲，直到跳回hbmenu界面再鬆開按鈕!\n然後再選擇CyberFoil，屆時將不會彈出此對話框！"
-        },
-        "buttons": " 選擇  退出",
-        "info": {
-            "button": "資訊",
-            "shop": "瀏覽商店分區，並從 eShop 選擇要安裝的遊戲。",
-            "sd": "安裝儲存在 SD 卡中的 NSP/NSZ/XCI/XCZ 檔案。",
-            "hdd": "直接從已連接的 USB SSD 或硬碟安裝檔案。",
-            "mtp": "透過 USB 連接電腦，將檔案複製到 MTP 安裝資料夾後進行安裝。",
-            "usb": "使用 NS-USBloader 等工具透過 USB 安裝。",
-            "net": "從區域網路或網際網路來源安裝檔案。",
-            "sig": "安裝、更新或移除簽名修補程式。",
-            "set": "變更 CyberFoil 偏好與商店設定。",
-            "backup": "將所選使用者的所有本機存檔資料，一次備份到你已設定的商店伺服器。\n\n運作方式：\n1. 若有多個使用者，先選擇要備份的帳號。\n2. 若尚未設定商店，CyberFoil 會先嘗試已儲存的商店設定，否則會要求輸入商店 URL。\n3. 輸入備份備註（必填）。\n4. CyberFoil 會掃描該使用者的本機存檔，並逐一上傳到伺服器。\n5. 掃描與上傳期間會顯示進度。\n6. 最後會顯示成功與失敗摘要。",
-            "exit": "關閉 CyberFoil 並返回 HOME。"
-        }
+  "main": {
+    "menu": {
+      "sd": "通過SD卡安裝",
+      "hdd": "通過 USB SSD/HDD 安裝",
+      "net": "通過網路安裝",
+      "shop": "通過 eShop 安裝",
+      "usb": "透過 NS-USBloader 安裝",
+      "mtp": "透過 MTP 安裝",
+      "backup": "備份存檔資料",
+      "sig": "管理簽名補丁（signature patches）",
+      "set": "設置",
+      "exit": "退出"
     },
-    "inst": {
-        "net": {
-            "help": {
-                "title": "幫助",
-                "desc": "文件可以通過NS-USBloader遠程安裝。\n也可以選擇輸入URL地址安裝。\n如果您的遠程工具對某種文件格式不支援，您可以嘗試修改文件的擴展名再選擇它，安裝的時候 CyberFoil 並不在意擴展名！\n如果還是搞不懂，那就使用SD卡安裝方式吧！"
-            },
-            "src": {
-                "title": "您想要通過哪種方式安裝",
-                "opt0": "URL",
-                "opt1": "谷歌網盤（Google Drive）"
-            },
-            "url": {
-                "hint": "輸入文件的URL地址",
-                "invalid": "URL地址無效！",
-                "source_string": " 通過URL"
-            },
-            "gdrive": {
-                "hint": "請輸入一個谷歌網盤文件的ID",
-                "alt_name": "谷歌網盤文件",
-                "source_string": " 從谷歌網盤"
-            },
-            "top_info": "選擇您要安裝的文件，然後按下  號",
-            "top_info1": "等待連接中... 您的Switch主機IP是: ",
-            "failed": "遠程安裝失敗！",
-            "transfer_interput": "傳輸過程中產生了一個錯誤，請您檢查網路連接是否正常！",
-            "source_string": " 通過局域網安裝",
-            "buttons": " 通過Internet  幫助  取消",
-            "buttons1": " 選擇文件  全選  安裝選中的文件  返回"
-        },
-        "shop": {
-            "loading": "正在載入商店清單...",
-            "top_info": "選擇要從商店安裝的檔案，然後按下  鍵開始安裝！",
-            "failed": "載入商店失敗",
-            "unreachable": "無法連線到商店。",
-            "encrypted_unsupported": "不支援加密的商店回應。請在 eShop 設定中停用「加密商店」。",
-            "empty": "商店中沒有任何檔案。",
-            "source_string": " 來自 eShop",
-            "buttons_loading": " 取消",
-            "buttons": " 選擇文件  全選  安裝選中的文件  刷新 / 分區     檢視     取消",
-            "buttons_all": " 選擇文件  全選  安裝選中的文件  刷新 / 分區     搜尋     檢視     取消",
-            "search_hint": "搜尋所有標題",
-            "update_prompt_title": "安裝更新？",
-            "update_prompt_desc": "是否一併安裝所選標題可用的更新？ 已找到的更新數量：",
-            "dlc_prompt_title": "Install DLC?",
-            "dlc_prompt_desc": "Include available DLC for selected titles? DLC found: ",
-            "motd_title": "每日訊息",
-            "buttons_installed": " 詳細資訊     重新整理    / 分區     取消",
-            "detail_type": "類型: ",
-            "detail_titleid": "標題 ID: ",
-            "detail_version": "版本: "
-        },
-        "sd": {
-            "help": {
-                "title": "幫助",
-                "desc": "複製您的 NSP, NSZ, XCI, XCZ 文件到SD卡, \n選擇想要安裝的文件，然後按  安裝！"
-            },
-            "top_info": "選擇想要安裝的文件，然後按  安裝！",
-            "source_string": " 從SD卡",
-            "delete_info": " 安裝完成！要將原文件從SD卡刪除嗎？",
-            "delete_info_multi": " 所有文件已安裝！要把所有原文件從SD卡刪除嗎？",
-            "delete_desc": "安裝成功後已經不需要原文件。",
-            "buttons": " 選擇文件  全選  安裝  幫助  取消"
-        },
-        "hdd": {
-            "help": {
-                "title": "幫助",
-                "desc": "連接 USB SSD 或硬碟，瀏覽並選取 NSP、NSZ、XCI 或 XCZ 檔案，然後按下  鍵開始安裝。"
-            },
-            "top_info": "選擇要安裝的檔案，然後按下  鍵開始安裝！",
-            "source_string": " 來自 USB 裝置",
-            "delete_info": " 安裝完成！是否從 USB 裝置中刪除此檔案？",
-            "delete_info_multi": " 個檔案已成功安裝！是否從 USB 裝置中刪除這些檔案？",
-            "delete_desc": "安裝完成後便不再需要保留原始檔案",
-            "buttons": " 選擇文件  全選  安裝選中的文件  幫助  取消"
-        },
-        "usb": {
-            "help": {
-                "title": "幫助",
-                "desc": "文件可以通過NS-USBloader遠程安裝。\n也可以選擇輸入URL地址安裝。\n如果您的遠程工具對某種文件格式不支援，您可以嘗試修改文件的擴展名再選擇它，安裝的時候 CyberFoil 並不在意擴展名！\n如果還是搞不懂，那就使用SD卡安裝方式吧！"
-            },
-            "top_info": "USB連接成功! 正在接收文件列表...",
-            "top_info2": "選擇您想通過USB安裝的文件, 然後按  安裝",
-            "error": "USB傳輸超時...",
-            "source_string": " 通過USB",
-            "buttons": " (按住) 幫助  (按住) 取消",
-            "buttons2": " 選擇文件  全選  安裝文件  取消"
-        },
-        "target": {
-            "desc0": "將 ",
-            "desc1": " 安裝到哪？",
-            "desc00": "將已選擇的 ",
-            "desc01": " 文件安裝到哪?",
-            "opt0": "SD卡",
-            "opt1": "內部閃存"
-        },
-        "mtp": {
-            "target": {
-                "title": "透過 MTP 安裝",
-                "desc": "應該安裝到哪裡?"
-            },
-            "waiting": {
-                "title": "透過 MTP 安裝",
-                "desc": "連接到電腦，並將檔案上傳到 MTP 安裝資料夾。",
-                "hint": "按下 B 以停止 MTP。"
-            },
-            "error": {
-                "title": "MTP 錯誤",
-                "desc": "MTP 伺服器初始化失敗。"
-            }
-        },
-        "info_page": {
-            "top_info0": "正在安裝 ",
-            "preparing": "初始化安裝...",
-            "failed": "安裝失敗 ",
-            "failed_desc": "可以從系統設置中刪除部分安裝的內容。",
-            "complete": "安裝完成",
-            "desc0": " 安裝成功!",
-            "desc1": " 已安裝!",
-            "downloading": "下載中 ",
-            "at": " 在 "
-        },
-        "nca_verify": {
-            "title": "無效的 NCA 簽名！",
-            "desc": "簽名不正確的文件只能自己評估可靠性。\n重新打包的文件或DLC通常會報這樣的警告。 您可以通過設置選項忽略這些警告。\n您確定要繼續安裝嗎？",
-            "opt1": "是的，我知道風險在哪",
-            "error": "NCA沒有正確簽名: "
-        },
-        "finished": [
-            "享受您的“合法版本”吧！",
-            "我敢保證當您玩過之後，更有興趣購買正版遊戲！",
-            "您會買這遊戲的，對吧？任天堂感謝您！",
-            "繞過DRM很棒，不是嗎？",
-            "粗來混，早晚要還的！",
-            "任天堂已經對您派遣了忍者",
-            "您甚至不需要相信民主自由就能拿到這樣的好處了..."
-        ]
+    "net": {
+      "title": "連接錯誤",
+      "desc": "請確認關閉飛行模式，並確保網路連接暢通。"
     },
-    "sig": {
-        "install": "安裝",
-        "uninstall": "卸載",
-        "update": "更新",
-        "version_text": "您目前已安裝適用於HOS版本的簽名補丁 ",
-        "title0": "安裝簽名補丁？",
-        "desc0": "官方軟件需要安裝簽名補丁。",
-        "backup_failed": "不能備份Hekate的patches.ini! 繼續安裝？",
-        "backup_failed_desc": "如果您沒在用Hekate的話，可以忽略這個警告！",
-        "download_failed": "無法下載簽名補丁",
-        "download_failed_desc": "您可能在設置中提供了無效的來源,\n或者服務器正好掛了。",
-        "version_text2": "簽名補丁已更新 ",
-        "install_complete": "安裝完成！",
-        "complete_desc": "需要重啟您的主機",
-        "restart": "立即重啟",
-        "later": "稍後重啟",
-        "extract_failed": "無法解壓文件！",
-        "restore_failed": "不能回復原Hekate的patches.ini！要繼續卸載嗎？",
-        "uninstall_complete": "卸載完成",
-        "remove_failed": "無法刪除簽名補丁",
-        "remove_failed_desc": "文件已經被重命名或刪除",
-        "generic_error": "安裝簽名補丁失敗！"
+    "usb": {
+      "warn": {
+        "title": "警告！",
+        "desc": "USB安裝方式不一定能“正常工作”。\n如果您不幸遇到這樣的情況，那就用力扯自己的頭髮吧！\n推薦在PC端使用NS-USBloader配合安裝。\n還是不行就通過網路安裝吧...",
+        "opt1": "不再對此進行警告"
+      },
+      "error": {
+        "title": "USB未連接",
+        "desc": "請通過USB線連接您的遠程設備"
+      }
     },
-    "options": {
-        "menu_items": {
-            "ignore_firm": "忽略固件版本要求",
-            "nca_verify": "安裝前驗證NCA簽名",
-            "boost_mode": "安裝過程中開啟“超頻”模式",
-            "ask_delete": "安裝後詢問是否刪除原文件",
-            "auto_update": "自動更新",
-            "gay_option": "基友模式",
-            "sig_url": "簽名補丁來源URL: ",
-            "shop_url": "eShop URL: ",
-            "shop_user": "eShop 用戶: ",
-            "shop_pass": "eShop 密碼: ",
-            "shop_hide_installed": "在 eShop 中隱藏已安裝的標題",
-            "shop_hide_installed_section": "\u96b1\u85cf eShop \u7684\u300c\u5df2\u5b89\u88dd\u300d\u5340\u6bb5",
-            "shop_all_base_only": "在「全部」分區僅顯示基礎標題",
-            "shop_start_grid_mode": "以網格模式啟動商店",
-            "shop_reset_icons": "重設商店圖示快取",
-            "language": "語言： ",
-            "check_update": "檢測更新",
-            "credits": "致谢",
-            "sound": "啟用音效",
-            "oled": "啟用 OLED 模式",
-            "mtp_album": "在 MTP 安裝模式下顯示相簿磁碟機"
-        },
-        "nca_warn": {
-            "title": "警告！",
-            "desc": "有些可安裝文件可能存在木馬！\n您要非常信任這個文件才能關閉此驗證\n您是否確定要關閉NCA簽名驗證？",
-            "opt1": "是的，我不怕Switch變磚！"
-        },
-        "sig_hint": "輸入獲取簽名補丁的URL",
-        "shop": {
-            "url_hint": "請輸入 eShop網址 (例如: http://192.168.1.2:8465)",
-            "user_hint": "請輸入 eShop 使用者名稱 (選填)",
-            "pass_hint": "請輸入 eShop 密碼 (選填)"
-        },
-        "cache_reset": {
-            "title": "重設商店圖示快取？",
-            "desc": "這將刪除所有已快取的商店圖示，並在你下次開啟商店時強制重新下載。",
-            "confirm": "重設"
-        },
-        "update": {
-            "title": "有新版本可以更新",
-            "desc0": "CyberFoil ",
-            "desc1": " 新的更新！ 要繼續嗎？",
-            "opt0": "更新",
-            "top_info": "正在更新 ...",
-            "bot_info": "正在下載 ...",
-            "bot_info2": "正在解壓 ...",
-            "complete": "更新完成！",
-            "failed": "更新失敗！",
-            "end_desc": "本程式將關閉！",
-            "title_check_fail": "找不到更新",
-            "desc_check_fail": "已更新到最新版！"
-        },
-        "credits": {
-            "title": "感謝下列人士",
-            "desc": "- 來自HookedBehemoth 的巨大貢獻\n- Adubbz 以及其他為Tinfoil貢獻過的人\n- XorTroll 強大的Plutonium庫和金葉子工具\n- blawar (wife strangulator)和nicoboss 對NSZ 格式的支持\n- 來自AtlasNX Discuck的好心人 (至少其中一部分)\n- 來自RetroNX Discuck的好心人 (雖然沒直接參與)\n- 來自namako8982的Momiji美術\n- 也特別感謝TheXzoron"
-        },
-        "language": {
-            "title": "選擇語言",
-            "desc": "更改語言後本程式將關閉，請重新打開， 或按  返回。",
-            "system_language": "系統默認"
-        },
-        "title": "更改 CyberFoil 的設置！",
-        "buttons": " 選擇/更改  取消"
+    "hdd": {
+      "title": "未偵測到 USB 裝置",
+      "notfound": "請連接 USB SSD 或硬碟後再進行安裝。"
     },
-    "common": {
-        "ok": "確定",
-        "cancel": "取消",
-        "close": "關閉",
-        "yes": "是",
-        "no": "否",
-        "cancel_desc": "按  取消"
+    "applet": {
+      "title": "不支援Applet模式",
+      "desc": "您可以嘗試在“Applet模式”下使用本程式,但如果出現問題請切換到“非Applet模式”再運行。\n切換方法：\n 退回系統桌面選中任意一個遊戲，按住後點進入遊戲，直到跳回hbmenu界面再鬆開按鈕!\n然後再選擇CyberFoil，屆時將不會彈出此對話框！"
+    },
+    "buttons": " 選擇  退出",
+    "info": {
+      "button": "資訊",
+      "shop": "瀏覽商店分區，並從 eShop 選擇要安裝的遊戲。",
+      "sd": "安裝儲存在 SD 卡中的 NSP/NSZ/XCI/XCZ 檔案。",
+      "hdd": "直接從已連接的 USB SSD 或硬碟安裝檔案。",
+      "mtp": "透過 USB 連接電腦，將檔案複製到 MTP 安裝資料夾後進行安裝。",
+      "usb": "使用 NS-USBloader 等工具透過 USB 安裝。",
+      "net": "從區域網路或網際網路來源安裝檔案。",
+      "sig": "安裝、更新或移除簽名修補程式。",
+      "set": "變更 CyberFoil 偏好與商店設定。",
+      "backup": "將所選使用者的所有本機存檔資料，一次備份到你已設定的商店伺服器。\n\n運作方式：\n1. 若有多個使用者，先選擇要備份的帳號。\n2. 若尚未設定商店，CyberFoil 會先嘗試已儲存的商店設定，否則會要求輸入商店 URL。\n3. 輸入備份備註（必填）。\n4. CyberFoil 會掃描該使用者的本機存檔，並逐一上傳到伺服器。\n5. 掃描與上傳期間會顯示進度。\n6. 最後會顯示成功與失敗摘要。",
+      "exit": "關閉 CyberFoil 並返回 HOME。"
     }
+  },
+  "inst": {
+    "net": {
+      "help": {
+        "title": "幫助",
+        "desc": "文件可以通過NS-USBloader遠程安裝。\n也可以選擇輸入URL地址安裝。\n如果您的遠程工具對某種文件格式不支援，您可以嘗試修改文件的擴展名再選擇它，安裝的時候 CyberFoil 並不在意擴展名！\n如果還是搞不懂，那就使用SD卡安裝方式吧！"
+      },
+      "src": {
+        "title": "您想要通過哪種方式安裝",
+        "opt0": "URL",
+        "opt1": "谷歌網盤（Google Drive）"
+      },
+      "url": {
+        "hint": "輸入文件的URL地址",
+        "invalid": "URL地址無效！",
+        "source_string": " 通過URL"
+      },
+      "gdrive": {
+        "hint": "請輸入一個谷歌網盤文件的ID",
+        "alt_name": "谷歌網盤文件",
+        "source_string": " 從谷歌網盤"
+      },
+      "top_info": "選擇您要安裝的文件，然後按下  號",
+      "top_info1": "等待連接中... 您的Switch主機IP是: ",
+      "failed": "遠程安裝失敗！",
+      "transfer_interput": "傳輸過程中產生了一個錯誤，請您檢查網路連接是否正常！",
+      "source_string": " 通過局域網安裝",
+      "buttons": " 通過Internet  幫助  取消",
+      "buttons1": " 選擇文件  全選  安裝選中的文件  返回"
+    },
+    "shop": {
+      "loading": "正在載入商店清單...",
+      "top_info": "選擇要從商店安裝的檔案，然後按下  鍵開始安裝！",
+      "failed": "載入商店失敗",
+      "unreachable": "無法連線到商店。",
+      "encrypted_unsupported": "不支援加密的商店回應。請在 eShop 設定中停用「加密商店」。",
+      "empty": "商店中沒有任何檔案。",
+      "source_string": " 來自 eShop",
+      "buttons_loading": " 取消",
+      "buttons": " 選擇文件  全選  安裝選中的文件  刷新 / 分區     檢視     取消",
+      "buttons_all": " 選擇文件  全選  安裝選中的文件  刷新 / 分區     搜尋     檢視     取消",
+      "search_hint": "搜尋所有標題",
+      "update_prompt_title": "安裝更新？",
+      "update_prompt_desc": "是否一併安裝所選標題可用的更新？ 已找到的更新數量：",
+      "dlc_prompt_title": "Install DLC?",
+      "dlc_prompt_desc": "Include available DLC for selected titles? DLC found: ",
+      "motd_title": "每日訊息",
+      "buttons_installed": " 詳細資訊     重新整理    / 分區     取消",
+      "detail_type": "類型: ",
+      "detail_titleid": "標題 ID: ",
+      "detail_version": "版本: ",
+      "save_sync": {
+        "title": "存檔同步",
+        "status": {
+          "uploading_backup": "正在上傳存檔備份...",
+          "downloading_backup": "正在下載存檔備份...",
+          "packaging": "正在封裝存檔資料...",
+          "uploading_archive": "正在上傳存檔壓縮檔...",
+          "preparing_restore": "正在準備還原存檔..."
+        },
+        "progress": {
+          "preparing_upload": "正在準備上傳...",
+          "preparing_download": "正在準備下載...",
+          "scanning_files": "正在掃描檔案...",
+          "compressing_fmt": "正在壓縮 ",
+          "download_fmt": "下載：",
+          "download_bytes_fmt": "下載：",
+          "upload_archive_fmt": "正在上傳壓縮檔：",
+          "upload_archive_bytes_fmt": "正在上傳壓縮檔：",
+          "upload_wait_response_fmt": "上傳完成，等待回應中... ",
+          "upload_complete": "上傳完成。",
+          "starting_download": "正在開始下載存檔...",
+          "clearing_existing_files": "正在清除現有存檔檔案...",
+          "applying_save_data": "正在套用存檔資料...",
+          "restoring_fmt": "正在還原 ",
+          "complete": "存檔同步完成。"
+        },
+        "dialog": {
+          "unable_resolve_entry": "無法解析存檔項目。",
+          "replace_local_prompt": "要以伺服器副本取代本機存檔資料嗎？",
+          "delete_selected_fmt": "要刪除所選伺服器備份嗎？",
+          "delete_fmt": "要刪除伺服器備份嗎？",
+          "none_available": "此標題沒有可用的本機或遠端存檔。",
+          "success_generic": "存檔同步已成功完成。",
+          "uploaded_success": "存檔上傳成功。",
+          "downloaded_success": "存檔下載成功。",
+          "deleted_success": "存檔備份刪除成功。"
+        }
+      }
+    },
+    "sd": {
+      "help": {
+        "title": "幫助",
+        "desc": "複製您的 NSP, NSZ, XCI, XCZ 文件到SD卡, \n選擇想要安裝的文件，然後按  安裝！"
+      },
+      "top_info": "選擇想要安裝的文件，然後按  安裝！",
+      "source_string": " 從SD卡",
+      "delete_info": " 安裝完成！要將原文件從SD卡刪除嗎？",
+      "delete_info_multi": " 所有文件已安裝！要把所有原文件從SD卡刪除嗎？",
+      "delete_desc": "安裝成功後已經不需要原文件。",
+      "buttons": " 選擇文件  全選  安裝  幫助  取消"
+    },
+    "hdd": {
+      "help": {
+        "title": "幫助",
+        "desc": "連接 USB SSD 或硬碟，瀏覽並選取 NSP、NSZ、XCI 或 XCZ 檔案，然後按下  鍵開始安裝。"
+      },
+      "top_info": "選擇要安裝的檔案，然後按下  鍵開始安裝！",
+      "source_string": " 來自 USB 裝置",
+      "delete_info": " 安裝完成！是否從 USB 裝置中刪除此檔案？",
+      "delete_info_multi": " 個檔案已成功安裝！是否從 USB 裝置中刪除這些檔案？",
+      "delete_desc": "安裝完成後便不再需要保留原始檔案",
+      "buttons": " 選擇文件  全選  安裝選中的文件  幫助  取消"
+    },
+    "usb": {
+      "help": {
+        "title": "幫助",
+        "desc": "文件可以通過NS-USBloader遠程安裝。\n也可以選擇輸入URL地址安裝。\n如果您的遠程工具對某種文件格式不支援，您可以嘗試修改文件的擴展名再選擇它，安裝的時候 CyberFoil 並不在意擴展名！\n如果還是搞不懂，那就使用SD卡安裝方式吧！"
+      },
+      "top_info": "USB連接成功! 正在接收文件列表...",
+      "top_info2": "選擇您想通過USB安裝的文件, 然後按  安裝",
+      "error": "USB傳輸超時...",
+      "source_string": " 通過USB",
+      "buttons": " (按住) 幫助  (按住) 取消",
+      "buttons2": " 選擇文件  全選  安裝文件  取消"
+    },
+    "target": {
+      "desc0": "將 ",
+      "desc1": " 安裝到哪？",
+      "desc00": "將已選擇的 ",
+      "desc01": " 文件安裝到哪?",
+      "opt0": "SD卡",
+      "opt1": "內部閃存"
+    },
+    "mtp": {
+      "target": {
+        "title": "透過 MTP 安裝",
+        "desc": "應該安裝到哪裡?"
+      },
+      "waiting": {
+        "title": "透過 MTP 安裝",
+        "desc": "連接到電腦，並將檔案上傳到 MTP 安裝資料夾。",
+        "hint": "按下 B 以停止 MTP。"
+      },
+      "error": {
+        "title": "MTP 錯誤",
+        "desc": "MTP 伺服器初始化失敗。"
+      }
+    },
+    "info_page": {
+      "top_info0": "正在安裝 ",
+      "preparing": "初始化安裝...",
+      "failed": "安裝失敗 ",
+      "failed_desc": "可以從系統設置中刪除部分安裝的內容。",
+      "complete": "安裝完成",
+      "desc0": " 安裝成功!",
+      "desc1": " 已安裝!",
+      "downloading": "下載中 ",
+      "at": " 在 "
+    },
+    "nca_verify": {
+      "title": "無效的 NCA 簽名！",
+      "desc": "簽名不正確的文件只能自己評估可靠性。\n重新打包的文件或DLC通常會報這樣的警告。 您可以通過設置選項忽略這些警告。\n您確定要繼續安裝嗎？",
+      "opt1": "是的，我知道風險在哪",
+      "error": "NCA沒有正確簽名: "
+    },
+    "finished": [
+      "享受您的“合法版本”吧！",
+      "我敢保證當您玩過之後，更有興趣購買正版遊戲！",
+      "您會買這遊戲的，對吧？任天堂感謝您！",
+      "繞過DRM很棒，不是嗎？",
+      "粗來混，早晚要還的！",
+      "任天堂已經對您派遣了忍者",
+      "您甚至不需要相信民主自由就能拿到這樣的好處了..."
+    ]
+  },
+  "sig": {
+    "install": "安裝",
+    "uninstall": "卸載",
+    "update": "更新",
+    "version_text": "您目前已安裝適用於HOS版本的簽名補丁 ",
+    "title0": "安裝簽名補丁？",
+    "desc0": "官方軟件需要安裝簽名補丁。",
+    "backup_failed": "不能備份Hekate的patches.ini! 繼續安裝？",
+    "backup_failed_desc": "如果您沒在用Hekate的話，可以忽略這個警告！",
+    "download_failed": "無法下載簽名補丁",
+    "download_failed_desc": "您可能在設置中提供了無效的來源,\n或者服務器正好掛了。",
+    "version_text2": "簽名補丁已更新 ",
+    "install_complete": "安裝完成！",
+    "complete_desc": "需要重啟您的主機",
+    "restart": "立即重啟",
+    "later": "稍後重啟",
+    "extract_failed": "無法解壓文件！",
+    "restore_failed": "不能回復原Hekate的patches.ini！要繼續卸載嗎？",
+    "uninstall_complete": "卸載完成",
+    "remove_failed": "無法刪除簽名補丁",
+    "remove_failed_desc": "文件已經被重命名或刪除",
+    "generic_error": "安裝簽名補丁失敗！"
+  },
+  "options": {
+    "menu_items": {
+      "ignore_firm": "忽略固件版本要求",
+      "nca_verify": "安裝前驗證NCA簽名",
+      "boost_mode": "安裝過程中開啟“超頻”模式",
+      "ask_delete": "安裝後詢問是否刪除原文件",
+      "auto_update": "自動更新",
+      "gay_option": "基友模式",
+      "sig_url": "簽名補丁來源URL: ",
+      "shop_url": "eShop URL: ",
+      "shop_user": "eShop 用戶: ",
+      "shop_pass": "eShop 密碼: ",
+      "shop_hide_installed": "在 eShop 中隱藏已安裝的標題",
+      "shop_hide_installed_section": "隱藏 eShop 的「已安裝」區段",
+      "shop_all_base_only": "在「全部」分區僅顯示基礎標題",
+      "shop_start_grid_mode": "以網格模式啟動商店",
+      "shop_reset_icons": "重設商店圖示快取",
+      "language": "語言： ",
+      "check_update": "檢測更新",
+      "credits": "致谢",
+      "sound": "啟用音效",
+      "oled": "啟用 OLED 模式",
+      "mtp_album": "在 MTP 安裝模式下顯示相簿磁碟機"
+    },
+    "nca_warn": {
+      "title": "警告！",
+      "desc": "有些可安裝文件可能存在木馬！\n您要非常信任這個文件才能關閉此驗證\n您是否確定要關閉NCA簽名驗證？",
+      "opt1": "是的，我不怕Switch變磚！"
+    },
+    "sig_hint": "輸入獲取簽名補丁的URL",
+    "shop": {
+      "url_hint": "請輸入 eShop網址 (例如: http://192.168.1.2:8465)",
+      "user_hint": "請輸入 eShop 使用者名稱 (選填)",
+      "pass_hint": "請輸入 eShop 密碼 (選填)"
+    },
+    "cache_reset": {
+      "title": "重設商店圖示快取？",
+      "desc": "這將刪除所有已快取的商店圖示，並在你下次開啟商店時強制重新下載。",
+      "confirm": "重設"
+    },
+    "update": {
+      "title": "有新版本可以更新",
+      "desc0": "CyberFoil ",
+      "desc1": " 新的更新！ 要繼續嗎？",
+      "opt0": "更新",
+      "top_info": "正在更新 ...",
+      "bot_info": "正在下載 ...",
+      "bot_info2": "正在解壓 ...",
+      "complete": "更新完成！",
+      "failed": "更新失敗！",
+      "end_desc": "本程式將關閉！",
+      "title_check_fail": "找不到更新",
+      "desc_check_fail": "已更新到最新版！"
+    },
+    "credits": {
+      "title": "感謝下列人士",
+      "desc": "- 來自HookedBehemoth 的巨大貢獻\n- Adubbz 以及其他為Tinfoil貢獻過的人\n- XorTroll 強大的Plutonium庫和金葉子工具\n- blawar (wife strangulator)和nicoboss 對NSZ 格式的支持\n- 來自AtlasNX Discuck的好心人 (至少其中一部分)\n- 來自RetroNX Discuck的好心人 (雖然沒直接參與)\n- 來自namako8982的Momiji美術\n- 也特別感謝TheXzoron"
+    },
+    "language": {
+      "title": "選擇語言",
+      "desc": "更改語言後本程式將關閉，請重新打開， 或按  返回。",
+      "system_language": "系統默認"
+    },
+    "title": "更改 CyberFoil 的設置！",
+    "buttons": " 選擇/更改  取消"
+  },
+  "common": {
+    "ok": "確定",
+    "cancel": "取消",
+    "close": "關閉",
+    "yes": "是",
+    "no": "否",
+    "cancel_desc": "按  取消"
+  }
 }
-
-
-
-
-
-

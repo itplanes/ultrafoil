@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
@@ -26,9 +27,47 @@
 #include "util/title_util.hpp"
 #include "util/uid.hpp"
 #include "util/util.hpp"
+#include "ui/instPage.hpp"
 
 namespace {
     constexpr const char* kSaveMountName = "svsync";
+    constexpr double kSaveSyncUiTransferWeight = 70.0; // keep room for zip/mount phases around transfers
+    constexpr std::uint64_t kSaveSyncCommitEveryBytes = 8ULL * 1024ULL * 1024ULL;
+    constexpr std::size_t kSaveSyncCommitEveryFiles = 64;
+    constexpr std::uint64_t kSaveSyncUiUpdateBytesStep = 256ULL * 1024ULL;
+    constexpr auto kSaveSyncUiUpdateMinInterval = std::chrono::milliseconds(120);
+    constexpr std::size_t kSaveSyncZipIoBufferSize = 256U * 1024U;
+
+    struct UiProgressThrottle {
+        int lastPercent = -1;
+        std::uint64_t lastNow = 0;
+        std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::time_point::min();
+    };
+    using SaveSyncFileProgressCallback = std::function<void(std::size_t index, std::size_t total, const std::string& relativePath)>;
+    bool IsSafeZipRelativePath(const std::string& rawPath);
+
+    bool ShouldEmitUiProgress(UiProgressThrottle& throttle, int percent, std::uint64_t now)
+    {
+        const auto current = std::chrono::steady_clock::now();
+        if (percent >= 0 && percent != throttle.lastPercent) {
+            throttle.lastPercent = percent;
+            throttle.lastNow = now;
+            throttle.lastUpdate = current;
+            return true;
+        }
+        if ((now >= throttle.lastNow) && ((now - throttle.lastNow) >= kSaveSyncUiUpdateBytesStep)) {
+            throttle.lastNow = now;
+            throttle.lastUpdate = current;
+            return true;
+        }
+        if (throttle.lastUpdate == std::chrono::steady_clock::time_point::min() ||
+            (current - throttle.lastUpdate) >= kSaveSyncUiUpdateMinInterval) {
+            throttle.lastNow = now;
+            throttle.lastUpdate = current;
+            return true;
+        }
+        return false;
+    }
 
     std::string FormatResultHex(Result rc)
     {
@@ -99,6 +138,23 @@ namespace {
         return a.uid[0] == b.uid[0] && a.uid[1] == b.uid[1];
     }
 
+    std::string FormatSizeForUi(std::uint64_t bytes)
+    {
+        static const char* units[] = {"B", "KB", "MB", "GB"};
+        double value = static_cast<double>(bytes);
+        std::size_t unit = 0;
+        while (value >= 1024.0 && unit + 1 < (sizeof(units) / sizeof(units[0]))) {
+            value /= 1024.0;
+            unit++;
+        }
+        char buf[64] = {};
+        if (unit == 0)
+            std::snprintf(buf, sizeof(buf), "%llu %s", static_cast<unsigned long long>(bytes), units[unit]);
+        else
+            std::snprintf(buf, sizeof(buf), "%.1f %s", value, units[unit]);
+        return std::string(buf);
+    }
+
     std::string NormalizeShopUrl(std::string url)
     {
         url = TrimAscii(url);
@@ -109,6 +165,40 @@ namespace {
         if (!url.empty() && url.back() == '/')
             url.pop_back();
         return url;
+    }
+
+    std::string NormalizePathForArchive(std::string path)
+    {
+        std::replace(path.begin(), path.end(), '\\', '/');
+        while (path.find("//") != std::string::npos)
+            path.erase(path.find("//"), 1);
+        return path;
+    }
+
+    bool BuildArchiveRelativePath(const std::filesystem::path& sourceRoot, const std::filesystem::path& filePath, std::string& outRel)
+    {
+        outRel.clear();
+        std::string root = NormalizePathForArchive(sourceRoot.string());
+        std::string full = NormalizePathForArchive(filePath.string());
+        if (root.empty() || full.empty())
+            return false;
+
+        if (root.back() != '/')
+            root.push_back('/');
+
+        if (full.rfind(root, 0) == 0) {
+            outRel = full.substr(root.size());
+        } else {
+            std::error_code relEc;
+            outRel = std::filesystem::relative(filePath, sourceRoot, relEc).generic_string();
+            if (relEc)
+                return false;
+        }
+
+        outRel = NormalizePathForArchive(outRel);
+        while (!outRel.empty() && outRel.front() == '/')
+            outRel.erase(outRel.begin());
+        return IsSafeZipRelativePath(outRel);
     }
 
     std::string BuildUploadUrl(const std::string& shopUrl, std::uint64_t titleId)
@@ -279,7 +369,7 @@ namespace {
         return true;
     }
 
-    bool CreateZipFromDirectory(const std::filesystem::path& sourceRoot, const std::filesystem::path& zipPath, std::string& error)
+    bool CreateZipFromDirectory(const std::filesystem::path& sourceRoot, const std::filesystem::path& zipPath, std::string& error, const SaveSyncFileProgressCallback& progressCb = {})
     {
         error.clear();
         zipFile zf = zipOpen64(zipPath.string().c_str(), APPEND_STATUS_CREATE);
@@ -305,7 +395,7 @@ namespace {
 
         if (files.empty()) {
             zip_fileinfo zi = {};
-            if (zipOpenNewFileInZip64(zf, ".empty", &zi, nullptr, 0, nullptr, 0, nullptr, Z_DEFLATED, Z_DEFAULT_COMPRESSION, 1) != ZIP_OK) {
+            if (zipOpenNewFileInZip64(zf, ".empty", &zi, nullptr, 0, nullptr, 0, nullptr, Z_DEFLATED, Z_BEST_SPEED, 1) != ZIP_OK) {
                 zipClose(zf, nullptr);
                 error = "Failed to build save archive.";
                 return false;
@@ -315,15 +405,21 @@ namespace {
             return true;
         }
 
-        std::vector<char> buffer(0x8000);
+        std::vector<char> buffer(kSaveSyncZipIoBufferSize);
+        std::size_t fileIndex = 0;
         for (const auto& file : files) {
-            std::error_code relEc;
-            std::string rel = std::filesystem::relative(file, sourceRoot, relEc).generic_string();
-            if (relEc || rel.empty())
-                rel = file.filename().string();
+            std::string rel;
+            if (!BuildArchiveRelativePath(sourceRoot, file, rel) || rel.empty()) {
+                zipClose(zf, nullptr);
+                error = "Failed to resolve save archive relative path.";
+                return false;
+            }
+            fileIndex++;
+            if (progressCb)
+                progressCb(fileIndex, files.size(), rel);
 
             zip_fileinfo zi = {};
-            if (zipOpenNewFileInZip64(zf, rel.c_str(), &zi, nullptr, 0, nullptr, 0, nullptr, Z_DEFLATED, Z_DEFAULT_COMPRESSION, 1) != ZIP_OK) {
+            if (zipOpenNewFileInZip64(zf, rel.c_str(), &zi, nullptr, 0, nullptr, 0, nullptr, Z_DEFLATED, Z_BEST_SPEED, 1) != ZIP_OK) {
                 zipClose(zf, nullptr);
                 error = "Failed to open file in save archive.";
                 return false;
@@ -382,7 +478,7 @@ namespace {
         return true;
     }
 
-    bool ExtractZipToMountedSaveWithCommits(const std::filesystem::path& archivePath, const std::string& mountedPath, const char* mountName, std::string& error)
+    bool ExtractZipToMountedSaveWithCommits(const std::filesystem::path& archivePath, const std::string& mountedPath, const char* mountName, std::string& error, const SaveSyncFileProgressCallback& progressCb = {})
     {
         error.clear();
         unzFile unz = unzOpen64(archivePath.string().c_str());
@@ -393,7 +489,43 @@ namespace {
 
         int code = unzGoToFirstFile(unz);
         bool sawEntry = false;
-        std::vector<char> buffer(0x8000);
+        std::vector<char> buffer(kSaveSyncZipIoBufferSize);
+        std::uint64_t bytesSinceCommit = 0;
+        std::size_t filesSinceCommit = 0;
+        std::size_t totalFiles = 0;
+        if (code == UNZ_OK) {
+            int countCode = code;
+            while (countCode == UNZ_OK) {
+                unz_file_info64 countInfo = {};
+                if (unzGetCurrentFileInfo64(unz, &countInfo, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK) {
+                    unzClose(unz);
+                    error = "Failed to scan save archive metadata.";
+                    return false;
+                }
+                std::string countRelPath;
+                if (countInfo.size_filename > 0) {
+                    std::vector<char> pathBuf(static_cast<size_t>(countInfo.size_filename) + 1, '\0');
+                    if (unzGetCurrentFileInfo64(unz, &countInfo, pathBuf.data(), static_cast<uLong>(pathBuf.size()), nullptr, 0, nullptr, 0) != UNZ_OK) {
+                        unzClose(unz);
+                        error = "Failed to scan save archive filename.";
+                        return false;
+                    }
+                    countRelPath.assign(pathBuf.data());
+                }
+                std::replace(countRelPath.begin(), countRelPath.end(), '\\', '/');
+                const bool countIsDirectory = !countRelPath.empty() && countRelPath.back() == '/';
+                if (!countRelPath.empty() && countRelPath != ".empty" && !countIsDirectory)
+                    totalFiles++;
+                countCode = unzGoToNextFile(unz);
+            }
+            if (countCode != UNZ_END_OF_LIST_OF_FILE) {
+                unzClose(unz);
+                error = "Failed while scanning downloaded save archive.";
+                return false;
+            }
+            code = unzGoToFirstFile(unz);
+        }
+        std::size_t extractedFiles = 0;
         while (code == UNZ_OK) {
             sawEntry = true;
             unz_file_info64 info = {};
@@ -433,6 +565,9 @@ namespace {
                         return false;
                     }
                 } else {
+                    extractedFiles++;
+                    if (progressCb)
+                        progressCb(extractedFiles, totalFiles, relPath);
                     std::filesystem::create_directories(outPath.parent_path(), ec);
                     if (ec) {
                         unzClose(unz);
@@ -466,6 +601,7 @@ namespace {
                         if (read == 0)
                             break;
                         out.write(buffer.data(), read);
+                        bytesSinceCommit += static_cast<std::uint64_t>(read);
                         if (!out.good()) {
                             out.close();
                             unzCloseCurrentFile(unz);
@@ -483,12 +619,16 @@ namespace {
                         return false;
                     }
 
-                    // SaveData writes should be committed frequently to avoid journal pressure.
-                    Result commitRc = fsdevCommitDevice(mountName);
-                    if (R_FAILED(commitRc)) {
-                        unzClose(unz);
-                        error = "Failed to commit imported save file (" + FormatResultHex(commitRc) + ").";
-                        return false;
+                    filesSinceCommit++;
+                    if (bytesSinceCommit >= kSaveSyncCommitEveryBytes || filesSinceCommit >= kSaveSyncCommitEveryFiles) {
+                        Result commitRc = fsdevCommitDevice(mountName);
+                        if (R_FAILED(commitRc)) {
+                            unzClose(unz);
+                            error = "Failed to commit imported save data (" + FormatResultHex(commitRc) + ").";
+                            return false;
+                        }
+                        bytesSinceCommit = 0;
+                        filesSinceCommit = 0;
                     }
                 }
             }
@@ -694,6 +834,104 @@ namespace {
         return true;
     }
 
+    bool HttpDownloadFileWithAuthAndProgress(const std::string& url, const std::string& outputPath, const std::string& user, const std::string& pass, long timeoutMs, std::string& error)
+    {
+        error.clear();
+        if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
+            error = "Failed to initialize HTTP client.";
+            return false;
+        }
+
+        CURL* curl = curl_easy_init();
+        if (!curl) {
+            error = "Failed to initialize HTTP request.";
+            return false;
+        }
+
+        FILE* file = std::fopen(outputPath.c_str(), "wb");
+        if (!file) {
+            curl_easy_cleanup(curl);
+            error = "Failed to open save archive output file.";
+            return false;
+        }
+
+        UiProgressThrottle throttle{};
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, nullptr);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeoutMs);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 5000L);
+        const std::string& userAgent = inst::curl::getUserAgent();
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, +[](void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t, curl_off_t) -> int {
+            auto* throttle = static_cast<UiProgressThrottle*>(clientp);
+            if (!throttle)
+                return 0;
+            std::uint64_t total = dltotal > 0 ? static_cast<std::uint64_t>(dltotal) : 0;
+            std::uint64_t now = dlnow > 0 ? static_cast<std::uint64_t>(dlnow) : 0;
+            if (total > 0) {
+                const int transferPercent = static_cast<int>((now * 100ULL) / total);
+                if (!ShouldEmitUiProgress(*throttle, transferPercent, now))
+                    return 0;
+                const int uiPercent = 10 + static_cast<int>((kSaveSyncUiTransferWeight * transferPercent) / 100.0);
+                inst::ui::instPage::setInstBarPerc(uiPercent);
+                inst::ui::instPage::setProgressDetailText(
+                    "inst.shop.save_sync.progress.download_fmt"_lang +
+                    std::to_string(transferPercent) + "% (" + FormatSizeForUi(now) + " / " + FormatSizeForUi(total) + ")");
+            } else if (now > 0) {
+                if (!ShouldEmitUiProgress(*throttle, -1, now))
+                    return 0;
+                inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.download_bytes_fmt"_lang + FormatSizeForUi(now));
+            }
+            return 0;
+        });
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &throttle);
+
+        struct curl_slist* headerList = nullptr;
+        const auto headers = BuildShopHeaders(url, user, pass);
+        for (const auto& header : headers)
+            headerList = curl_slist_append(headerList, header.c_str());
+        if (headerList)
+            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+
+        std::string authValue;
+        if (!user.empty() || !pass.empty()) {
+            authValue = user + ":" + pass;
+            curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_easy_setopt(curl, CURLOPT_USERPWD, authValue.c_str());
+        }
+
+        const CURLcode rc = curl_easy_perform(curl);
+        long responseCode = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+        if (headerList)
+            curl_slist_free_all(headerList);
+        curl_easy_cleanup(curl);
+        std::fclose(file);
+
+        if (rc != CURLE_OK) {
+            error = "Failed to download save archive: " + std::string(curl_easy_strerror(rc));
+            return false;
+        }
+        if (responseCode < 200 || responseCode >= 300) {
+            if (responseCode == 401 || responseCode == 403) {
+                error = "Save download is not permitted for this account (backup access required).";
+            } else if (responseCode == 404) {
+                error = "Remote save backup was not found.";
+            } else {
+                std::ostringstream ss;
+                ss << "Save download failed with HTTP " << responseCode;
+                error = ss.str();
+            }
+            return false;
+        }
+        return true;
+    }
+
     bool TryGetTitleIdFromJson(const nlohmann::json& obj, std::uint64_t& outTitleId)
     {
         static const char* keys[] = {"title_id", "titleId", "app_id", "appId", "id"};
@@ -792,6 +1030,7 @@ namespace {
             return false;
         }
 
+        UiProgressThrottle throttle{};
         std::string responseBody;
         const std::string titleIdText = FormatTitleIdHex(titleId);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -804,6 +1043,35 @@ namespace {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseBody);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 60000L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 5000L);
+        curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, +[](void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow) -> int {
+            auto* throttle = static_cast<UiProgressThrottle*>(clientp);
+            if (!throttle)
+                return 0;
+            std::uint64_t total = ultotal > 0 ? static_cast<std::uint64_t>(ultotal) : 0;
+            std::uint64_t now = ulnow > 0 ? static_cast<std::uint64_t>(ulnow) : 0;
+            if (total > 0) {
+                const int transferPercent = static_cast<int>((now * 100ULL) / total);
+                if (!ShouldEmitUiProgress(*throttle, transferPercent, now))
+                    return 0;
+                const int uiPercent = 30 + static_cast<int>((65.0 * transferPercent) / 100.0); // 30..95
+                inst::ui::instPage::setInstBarPerc(uiPercent);
+                inst::ui::instPage::setProgressDetailText(
+                    "inst.shop.save_sync.progress.upload_archive_fmt"_lang +
+                    std::to_string(transferPercent) + "% (" + FormatSizeForUi(now) + " / " + FormatSizeForUi(total) + ")");
+            } else if (now > 0) {
+                if (!ShouldEmitUiProgress(*throttle, -1, now))
+                    return 0;
+                inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.upload_archive_bytes_fmt"_lang + FormatSizeForUi(now));
+            }
+            if (dltotal > 0 && dlnow >= 0) {
+                const int responsePercent = static_cast<int>((static_cast<double>(dlnow) / static_cast<double>(dltotal)) * 100.0);
+                inst::ui::instPage::setProgressDetailText(
+                    "inst.shop.save_sync.progress.upload_wait_response_fmt"_lang + std::to_string(responsePercent) + "%");
+            }
+            return 0;
+        });
+        curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &throttle);
 
         struct curl_slist* headerList = nullptr;
         const auto headers = BuildShopHeaders(url, user, pass);
@@ -913,6 +1181,7 @@ namespace {
         }
         return true;
     }
+
 }
 
 namespace inst::save_sync {
@@ -1117,12 +1386,26 @@ namespace inst::save_sync {
         if (!MountSaveDataForTitle(targetUid, entry.titleId, true, error))
             return false;
 
-        if (!CreateZipFromDirectory(mountedPath, archivePath, error)) {
+        inst::ui::instPage::setTopInstInfoText("inst.shop.save_sync.title"_lang);
+        inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.packaging"_lang);
+        inst::ui::instPage::setInstBarPerc(2);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.scanning_files"_lang);
+        auto zipProgressCb = [](std::size_t index, std::size_t total, const std::string& relativePath) {
+            const int percent = (total > 0) ? static_cast<int>((index * 100ULL) / total) : 0;
+            const int uiPercent = 2 + static_cast<int>((28.0 * percent) / 100.0); // 2..30
+            inst::ui::instPage::setInstBarPerc(uiPercent);
+            inst::ui::instPage::setProgressDetailText(
+                "inst.shop.save_sync.progress.compressing_fmt"_lang +
+                std::to_string(index) + "/" + std::to_string(total) + ": " + inst::util::shortenString(relativePath, 72, false));
+        };
+        if (!CreateZipFromDirectory(mountedPath, archivePath, error, zipProgressCb)) {
             fsdevUnmountDevice(kSaveMountName);
             return false;
         }
 
         fsdevUnmountDevice(kSaveMountName);
+        inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.uploading_archive"_lang);
+        inst::ui::instPage::setInstBarPerc(30);
 
         const std::string uploadUrl = BuildUploadUrl(shopUrl, entry.titleId);
         if (uploadUrl.empty()) {
@@ -1134,6 +1417,8 @@ namespace inst::save_sync {
             return false;
 
         std::filesystem::remove_all(tempRoot, ec);
+        inst::ui::instPage::setInstBarPerc(100);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.upload_complete"_lang);
         return true;
     }
 
@@ -1181,8 +1466,11 @@ namespace inst::save_sync {
         std::filesystem::remove_all(tempRoot, ec);
         std::filesystem::create_directories(tempRoot, ec);
 
-        if (!inst::curl::downloadFileWithAuth(downloadUrl, archivePath.string().c_str(), user, pass, 60000)) {
-            error = "Failed to download save archive from server.";
+        inst::ui::instPage::setInstBarPerc(10);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.starting_download"_lang);
+        if (!HttpDownloadFileWithAuthAndProgress(downloadUrl, archivePath.string(), user, pass, 60000, error)) {
+            if (error.empty())
+                error = "Failed to download save archive from server.";
             return false;
         }
 
@@ -1194,18 +1482,35 @@ namespace inst::save_sync {
             return false;
 
         const std::string mountedPath = std::string(kSaveMountName) + ":/";
+        inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.preparing_restore"_lang);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.clearing_existing_files"_lang);
         if (!ClearDirectoryContents(mountedPath, error)) {
             fsdevUnmountDevice(kSaveMountName);
             return false;
         }
+        inst::ui::instPage::setInstBarPerc(85);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.applying_save_data"_lang);
         Result clearCommitRc = fsdevCommitDevice(kSaveMountName);
         if (R_FAILED(clearCommitRc)) {
             fsdevUnmountDevice(kSaveMountName);
             error = "Failed to commit cleared save data (" + FormatResultHex(clearCommitRc) + ").";
             return false;
         }
+        fsdevUnmountDevice(kSaveMountName);
 
-        if (!ExtractZipToMountedSaveWithCommits(archivePath, mountedPath, kSaveMountName, error)) {
+        // Match JKSV restore flow: remount fresh after wipe+commit, then import.
+        if (!MountSaveDataForTitle(uid, entry.titleId, false, error))
+            return false;
+
+        auto extractProgressCb = [](std::size_t index, std::size_t total, const std::string& relativePath) {
+            const int percent = (total > 0) ? static_cast<int>((index * 100ULL) / total) : 0;
+            const int uiPercent = 85 + static_cast<int>((14.0 * percent) / 100.0); // 85..99
+            inst::ui::instPage::setInstBarPerc(uiPercent);
+            inst::ui::instPage::setProgressDetailText(
+                "inst.shop.save_sync.progress.restoring_fmt"_lang +
+                std::to_string(index) + "/" + std::to_string(total) + ": " + inst::util::shortenString(relativePath, 72, false));
+        };
+        if (!ExtractZipToMountedSaveWithCommits(archivePath, mountedPath, kSaveMountName, error, extractProgressCb)) {
             fsdevUnmountDevice(kSaveMountName);
             return false;
         }
@@ -1218,6 +1523,8 @@ namespace inst::save_sync {
         }
 
         std::filesystem::remove_all(tempRoot, ec);
+        inst::ui::instPage::setInstBarPerc(100);
+        inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.complete"_lang);
         return true;
     }
 
@@ -1272,4 +1579,5 @@ namespace inst::save_sync {
         return true;
     }
 }
+
 

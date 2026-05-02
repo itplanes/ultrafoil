@@ -1,293 +1,325 @@
 {
-    "main": {
-        "menu": {
-            "sd": "Instalar através do cartão SD",
-            "hdd": "Instalar a partir de SSD/HDD USB",
-            "net": "Instalar através da LAN ou da Internet",
-            "shop": "Instalar a partir do eShop",
-            "usb": "Instalar a partir do NS-USBloader",
-            "mtp": "Instalar a partir do MTP",
-            "backup": "Fazer backup dos dados salvos",
-            "sig": "Gerir patches de assinaturas",
-            "set": "Definições",
-            "exit": "Sair"
-        },
-        "net": {
-            "title": "Ligação à rede indisponível",
-            "desc": "Verifique se o modo avião está desligado e se está ligado à rede local."
-        },
-        "usb": {
-            "warn": {
-                "title": "Aviso!",
-                "desc": "A instalação através do USB \"simplesmente não funcionará\" em alguns dispositivos ou configurações.\nSe tiver problemas a instalar através do USB, por favor não arranque\ncabelos! Recomendamos que use o NS-USBloader para instalações USB, ou\nem alternativa instale remotamente através da LAN/Internet, especialmente\nse usar um adaptador ethernet!\n\nIrá benefeciar imenso com isso...",
-                "opt1": "Não me aborrecer novamente"
-            },
-            "error": {
-                "title": "Nenhuma ligação USB detetada",
-                "desc": "Ligue um dispositivo compatível para instalar através do USB"
-            }
-        },
-        "hdd": {
-            "title": "Nenhuma unidade USB detetada",
-            "notfound": "Ligue um SSD ou disco rígido USB para instalar a partir dele."
-        },
-        "applet": {
-            "title": "Modo applet não suportado",
-            "desc": "Poderá ter problemas se usar o CyberFoil em modo Applet. Se\ntiver problemas, execute o CyberFoil através de um título\ninstalado (mantenha R primido enquanto inicia um jogo)!"
-        },
-        "buttons": " Selecionar     Sair",
-        "info": {
-            "button": "Info",
-            "shop": "Navegue pelas secções da loja e selecione títulos para instalar a partir da eShop.",
-            "sd": "Instale ficheiros NSP/NSZ/XCI/XCZ guardados no cartão SD.",
-            "hdd": "Instale ficheiros diretamente de um SSD ou disco rígido USB ligado.",
-            "mtp": "Ligue um PC por USB e instale ao copiar ficheiros para a pasta de instalação MTP.",
-            "usb": "Instale por USB com ferramentas como o NS-USBloader.",
-            "net": "Instale ficheiros a partir de fontes LAN ou internet.",
-            "sig": "Instale, atualize ou remova os signature patches.",
-            "set": "Altere as preferências do CyberFoil e as definições da loja.",
-            "backup": "Faz backup de todos os dados salvos locais do usuario selecionado para o servidor da loja configurado em uma unica acao.\n\nComo funciona:\n1. Se houver varios usuarios, escolha primeiro a conta para backup.\n2. Se nenhuma loja estiver configurada, o CyberFoil tenta perfis salvos e depois solicita uma URL de loja.\n3. Insira uma nota de backup (obrigatoria).\n4. O CyberFoil analisa os saves locais desse usuario e envia cada um ao servidor.\n5. O progresso e exibido durante a analise e o envio.\n6. Um resumo final mostra sucessos e falhas.",
-            "exit": "Feche o CyberFoil e volte ao menu HOME."
-        }
+  "main": {
+    "menu": {
+      "sd": "Instalar através do cartão SD",
+      "hdd": "Instalar a partir de SSD/HDD USB",
+      "net": "Instalar através da LAN ou da Internet",
+      "shop": "Instalar a partir do eShop",
+      "usb": "Instalar a partir do NS-USBloader",
+      "mtp": "Instalar a partir do MTP",
+      "backup": "Fazer backup dos dados salvos",
+      "sig": "Gerir patches de assinaturas",
+      "set": "Definições",
+      "exit": "Sair"
     },
-    "inst": {
-        "net": {
-            "help": {
-                "title": "Ajuda",
-                "desc": "Os Ficheiros podem ser instalados remotamente a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC ou no telemóvel, insira o\n endreço de IP da Switch (aparece no ecrã) selecione os ficheiros e envie para\na consola! Se não conseguir selecionar um tipo de ficheiro, tente renomeá-lo para uma extensão compatível.\nO CyberFoil não considera a extensão nas instalações de rede!\n\nSe tiver problemas ou configurar, apenas copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
-            },
-            "src": {
-                "title": "Deseja instalar através de onde?",
-                "opt0": "URL",
-                "opt1": "Google Drive"
-            },
-            "url": {
-                "hint": "Insira o endereço da Internet para o ficheiro",
-                "invalid": "O URL inserido é inválido!",
-                "source_string": " através do URL"
-            },
-            "gdrive": {
-                "hint": "Insira o ID público do ficheiro do Google Drive",
-                "alt_name": "Google Drive",
-                "source_string": " através do Google Drive"
-            },
-            "top_info": "Selecione os ficheiros que deseja instalar através do servidor, depois pressione o botão Mais!",
-            "top_info1": "A aguardar ligação... O endereço de IP da Switch é: ",
-            "failed": "A instalação remota falhou!",
-            "transfer_interput": "Ocorreu um erro ao tranferir os dados. Verifique a sua ligação à rede.",
-            "source_string": " através de rede local",
-            "buttons": " Instalar através da Internet     Ajuda     Cancelar",
-            "buttons1": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Cancelar"
-        },
-        "shop": {
-            "loading": "A carregar a lista da loja...",
-            "top_info": "Selecione os ficheiros que deseja instalar da loja e depois pressione o botão Mais!",
-            "failed": "Falha ao carregar a loja",
-            "unreachable": "Não foi possível acessar a loja.",
-            "encrypted_unsupported": "Respostas de loja criptografadas não são suportadas. Desative «Criptografar loja» nas configurações do eShop.",
-            "empty": "A loja não tem ficheiros.",
-            "source_string": " da eShop",
-            "buttons_loading": " Cancelar",
-            "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Atualizar    / Secção     Ver     Cancelar",
-            "buttons_all": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Atualizar    / Secção     Pesquisar     Ver     Cancelar",
-            "search_hint": "Pesquisar em todos os títulos",
-            "update_prompt_title": "Instalar atualizações?",
-            "update_prompt_desc": "Incluir as atualizações disponíveis para os títulos selecionados? Atualizações encontradas: ",
-            "dlc_prompt_title": "Install DLC?",
-            "dlc_prompt_desc": "Include available DLC for selected titles? DLC found: ",
-            "motd_title": "Mensagem do dia",
-            "buttons_installed": " Detalhes     Atualizar    / Secção     Cancelar",
-            "detail_type": "Tipo: ",
-            "detail_titleid": "ID do título: ",
-            "detail_version": "Versão: "
-        },
-        "sd": {
-            "help": {
-                "title": "Ajuda",
-                "desc": "Copie os ficheiros NSP, NSZ, XCI, ou XCZ para o cartão SD, explore e\nselecione os ficheiros que deseja instalar, depois pressione o botão Mais."
-            },
-            "top_info": "Selecione os ficheiros que deseja instalar, depois pressione o botão Mais!",
-            "source_string": " através do cartão SD",
-            "delete_info": " instalado! Eliminar do cartão SD?",
-            "delete_info_multi": " instalados com sucesso! Eliminar do cartão SD?",
-            "delete_desc": "Os ficheiros originais não são necessários depois de instalados",
-            "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Ajuda     Cancelar"
-        },
-        "hdd": {
-            "help": {
-                "title": "Ajuda",
-                "desc": "Ligue um SSD ou disco rígido USB, procure e selecione ficheiros NSP, NSZ, XCI\nou XCZ e depois pressione o botão Mais."
-            },
-            "top_info": "Selecione os ficheiros que deseja instalar e depois pressione o botão Mais!",
-            "source_string": " a partir da unidade USB",
-            "delete_info": " instalado! Eliminar da unidade USB?",
-            "delete_info_multi": " ficheiros instalados com sucesso! Eliminar da unidade USB?",
-            "delete_desc": "Os ficheiros originais deixam de ser necessários depois de instalados",
-            "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Ajuda     Cancelar"
-        },
-        "usb": {
-            "help": {
-                "title": "Ajuda",
-                "desc": "Os Ficheiros podem ser instalados através do USB a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC, selecione os ficheiros e envie para\na consola!\n\nInfelizmente as instalações USB requerem configurações epecíficas em algumas\nplataformas causando problemas. Se for o caso,\ntente instalar através da LAN/Internet, ou copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
-            },
-            "top_info": "USB connection successful! Waiting for list of files to be sent...",
-            "top_info2": "Selecione os ficheiros que deseja instalar através do USB, depois pressione o botão Mais!",
-            "error": "A transferência USB expirou ou falhou",
-            "source_string": " através do USB",
-            "buttons": " (Manter primido) Ajuda     (Manter primido) Cancelar",
-            "buttons2": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Cancelar"
-        },
-        "target": {
-            "desc0": "Onde será o ",
-            "desc1": " instalado?",
-            "desc00": "Onde serão os ",
-            "desc01": " ficheiros selecionados instalados?",
-            "opt0": "Cartão SD",
-            "opt1": "Memória Interna"
-        },
-        "mtp": {
-            "target": {
-                "title": "Instalação via MTP",
-                "desc": "Onde deve ser instalado?"
-            },
-            "waiting": {
-                "title": "Instalação via MTP",
-                "desc": "Ligue-se ao PC e carregue os ficheiros para a pasta de instalação MTP.",
-                "hint": "Prima B para parar o MTP."
-            },
-            "error": {
-                "title": "Erro MTP",
-                "desc": "Falha na inicialização do servidor MTP."
-            }
-        },
-        "info_page": {
-            "top_info0": "A instalar ",
-            "preparing": "A preparar a instalação...",
-            "failed": "Instalação falhada ",
-            "failed_desc": "Parcialmente instalado o conteúdo poderá ser removido através da applet Definições do Sistema.",
-            "complete": "Instalação completa",
-            "desc0": " ficheiros instalados com sucesso!",
-            "desc1": " instalado!",
-            "downloading": "A transferir ",
-            "at": " às "
-        },
-        "nca_verify": {
-            "title": "Detetada assinatura NCA inválida!",
-            "desc": "O software não assinado corretamente deverá ser instalado apenas de fontes\nconfiáveis. Ficheiros que contiverem repaks de cartuchos ou desbloqueadores de DLC mostrarão\nsempre esta mensagem. Esta verificação pode ser desligada nas definições do CyberFoil.\n\nTem a certeza que deseja continuar a instalação?",
-            "opt1": "Sim, eu compreendo os riscos",
-            "error": "O NCA solicitado não está corretamente assinado: "
-        },
-        "finished": [
-            "Disfrute da \"cópia legal\"!",
-            "Tenho a certeza que depois de experimentar o jogo irá adorar comprá-lo!",
-            "Comprou o joguinho certo? A Nintendo agradece muito a aquisição!",
-            "Ultrapassar DRM é brutal, não é?",
-            "Provavelmente foram salvas seis árvores ao não comprar este jogo! Todo o plástico vai para algum lado!",
-            "Os ninjas da Nintendo foram enviados para sua localização atual.",
-            "Nem foi necessário discutirmos sobre idiologias políticas para chegarmos até aqui!"
-        ]
+    "net": {
+      "title": "Ligação à rede indisponível",
+      "desc": "Verifique se o modo avião está desligado e se está ligado à rede local."
     },
-    "sig": {
-        "install": "Instalar",
-        "uninstall": "Desinstalar",
-        "update": "Atualizar",
-        "version_text": "Os patches de assinaturas instalado funcionam até à versão ",
-        "title0": "Instalar patches de assinaturas?",
-        "desc0": "Os patches de assinaturas são necessários para instalar e executar software oficial.",
-        "backup_failed": "Não foi possível salvaguardar o patches.ini do Hekate! Instalar mesmo assim?",
-        "backup_failed_desc": "Se não usar Hekate pode ignorar este aviso.",
-        "download_failed": "Impossível trasnferir os patches de assinaturas",
-        "download_failed_desc": "Talvez tenha definido uma fonte errada nas definições do CyberFoil,\nou o servidor está apenas em baixo neste momento.",
-        "version_text2": "Os patches de assinaturas foram atualizados para funcionar até à versão ",
-        "install_complete": "Instalação completa!",
-        "complete_desc": "Reinicie a consola para aplicar",
-        "restart": "Reiniciar",
-        "later": "Farei isto mais tarde",
-        "extract_failed": "Impossível extrair os ficheiros!",
-        "restore_failed": "Impossível restaurar o patches.ini do Hekate! Continuar a desinstalação?",
-        "uninstall_complete": "Desinstalação completa",
-        "remove_failed": "Impossível remover os patches de assinaturas",
-        "remove_failed_desc": "Os ficheiros foram renomeados ou eliminados",
-        "generic_error": "Falha ao instalar os patches de assinaturas!"
+    "usb": {
+      "warn": {
+        "title": "Aviso!",
+        "desc": "A instalação através do USB \"simplesmente não funcionará\" em alguns dispositivos ou configurações.\nSe tiver problemas a instalar através do USB, por favor não arranque\ncabelos! Recomendamos que use o NS-USBloader para instalações USB, ou\nem alternativa instale remotamente através da LAN/Internet, especialmente\nse usar um adaptador ethernet!\n\nIrá benefeciar imenso com isso...",
+        "opt1": "Não me aborrecer novamente"
+      },
+      "error": {
+        "title": "Nenhuma ligação USB detetada",
+        "desc": "Ligue um dispositivo compatível para instalar através do USB"
+      }
     },
-    "options": {
-        "menu_items": {
-            "ignore_firm": "Ignorar o requisito de firmeware mínimo imposto pelo título",
-            "nca_verify": "Verificar a assinatura NCA antes da instalação",
-            "boost_mode": "Ativar \"boost mode\" durante as instalações",
-            "ask_delete": "Questionar a eliminação dos ficheiros orginais depois da instalação",
-            "auto_update": "Procurar atualizações do CyberFoil automaticamente",
-            "gay_option": "Remover animé",
-            "sig_url": "URL da fonte dos patches de assinaturas: ",
-            "shop_url": "URL eShop: ",
-            "shop_user": "Utilizador eShop: ",
-            "shop_pass": "Palavra-passe eShop: ",
-            "shop_hide_installed": "Ocultar títulos instalados na eShop",
-            "shop_hide_installed_section": "Ocultar a se\u00e7\u00e3o Instalados na eShop",
-            "shop_all_base_only": "Mostrar apenas títulos base na seção Todos",
-            "shop_start_grid_mode": "Iniciar a loja no modo grelha",
-            "shop_reset_icons": "Repor a cache dos ícones da loja",
-            "language": "Idioma: ",
-            "check_update": "Procurar atualizações do CyberFoil",
-            "credits": "Créditos",
-            "sound": "Ativar sons",
-            "oled": "Ativar modo OLED",
-            "mtp_album": "Mostrar unidade Álbum no modo de instalação MTP"
-        },
-        "nca_warn": {
-            "title": "Aviso!",
-            "desc": "Alguns ficheiros instaláveis podem conter conteúdo malicioso! Apenas desligue esta\nfuncionalidade se tiver a certeza que o software que instala\né fidedigno!\n\nTem a certeza que deseja desativar a verificação NCA?",
-            "opt1": "Sim, Eu quero um tijolo"
-        },
-        "sig_hint": "Introduza o URL para obter os patches de assinaturas",
-        "shop": {
-            "url_hint": "Introduza o URL da sua eShop (exemplo: http://192.168.1.2:8465)",
-            "user_hint": "Introduza o seu nome de utilizador eShop (opcional)",
-            "pass_hint": "Introduza a sua palavra-passe eShop (opcional)"
-        },
-        "cache_reset": {
-            "title": "Repor a cache dos ícones da loja?",
-            "desc": "Isto irá eliminar todos os ícones da loja em cache e forçar um novo download na próxima vez que abrir a loja.",
-            "confirm": "Repor"
-        },
-        "update": {
-            "title": "Atualização disponível",
-            "desc0": "CyberFoil ",
-            "desc1": " está disponível! Pronto para atualizar?",
-            "opt0": "Atualizar",
-            "top_info": "A atualizar o CyberFoil ",
-            "bot_info": "A transferir o CyberFoil ",
-            "bot_info2": "A extrair o CyberFoil ",
-            "complete": "Atulização completa!",
-            "failed": "Atualização falhada!",
-            "end_desc": "O software será encerrado.",
-            "title_check_fail": "Sem atualizações",
-            "desc_check_fail": "Esta é a versão mais recente do CyberFoil!"
-        },
-        "credits": {
-            "title": "Agradecimentos às seguintes pessoas!",
-            "desc": "- HookedBehemoth por muitas contribuições\n- Adubbz e outros contribuidores pelo o Tinfoil\n- XorTroll pelo o Plutonium e Goldleaf\n- blawar (estrangulador de esposas) e nicoboss pelo suporte NSZ\n- O pessoal do AtlasNX Discuck (ou pelo menos alguns deles)\n- Tmabém para o pessoal do RetroNX Discuck (sem involvimento direto)\n- namako8982 pela arte da Momiji\n- TheXzoron por ser um idiota"
-        },
-        "language": {
-            "title": "Selecione o idioma do CyberFoil",
-            "desc": "O software será encerrado depois de alterar o idioma. Pressione B para cancelar.",
-            "system_language": "Sistema"
-        },
-        "title": "Alteração de deifinições do CyberFoil!",
-        "buttons": " Selecionar/Alterar     Cancelar"
+    "hdd": {
+      "title": "Nenhuma unidade USB detetada",
+      "notfound": "Ligue um SSD ou disco rígido USB para instalar a partir dele."
     },
-    "common": {
-        "ok": "OK",
-        "cancel": "Cancelar",
-        "close": "Fechar",
-        "yes": "Sim",
-        "no": "Não",
-        "cancel_desc": "Pressione B para cancelar"
+    "applet": {
+      "title": "Modo applet não suportado",
+      "desc": "Poderá ter problemas se usar o CyberFoil em modo Applet. Se\ntiver problemas, execute o CyberFoil através de um título\ninstalado (mantenha R primido enquanto inicia um jogo)!"
+    },
+    "buttons": " Selecionar     Sair",
+    "info": {
+      "button": "Info",
+      "shop": "Navegue pelas secções da loja e selecione títulos para instalar a partir da eShop.",
+      "sd": "Instale ficheiros NSP/NSZ/XCI/XCZ guardados no cartão SD.",
+      "hdd": "Instale ficheiros diretamente de um SSD ou disco rígido USB ligado.",
+      "mtp": "Ligue um PC por USB e instale ao copiar ficheiros para a pasta de instalação MTP.",
+      "usb": "Instale por USB com ferramentas como o NS-USBloader.",
+      "net": "Instale ficheiros a partir de fontes LAN ou internet.",
+      "sig": "Instale, atualize ou remova os signature patches.",
+      "set": "Altere as preferências do CyberFoil e as definições da loja.",
+      "backup": "Faz backup de todos os dados salvos locais do usuario selecionado para o servidor da loja configurado em uma unica acao.\n\nComo funciona:\n1. Se houver varios usuarios, escolha primeiro a conta para backup.\n2. Se nenhuma loja estiver configurada, o CyberFoil tenta perfis salvos e depois solicita uma URL de loja.\n3. Insira uma nota de backup (obrigatoria).\n4. O CyberFoil analisa os saves locais desse usuario e envia cada um ao servidor.\n5. O progresso e exibido durante a analise e o envio.\n6. Um resumo final mostra sucessos e falhas.",
+      "exit": "Feche o CyberFoil e volte ao menu HOME."
     }
+  },
+  "inst": {
+    "net": {
+      "help": {
+        "title": "Ajuda",
+        "desc": "Os Ficheiros podem ser instalados remotamente a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC ou no telemóvel, insira o\n endreço de IP da Switch (aparece no ecrã) selecione os ficheiros e envie para\na consola! Se não conseguir selecionar um tipo de ficheiro, tente renomeá-lo para uma extensão compatível.\nO CyberFoil não considera a extensão nas instalações de rede!\n\nSe tiver problemas ou configurar, apenas copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
+      },
+      "src": {
+        "title": "Deseja instalar através de onde?",
+        "opt0": "URL",
+        "opt1": "Google Drive"
+      },
+      "url": {
+        "hint": "Insira o endereço da Internet para o ficheiro",
+        "invalid": "O URL inserido é inválido!",
+        "source_string": " através do URL"
+      },
+      "gdrive": {
+        "hint": "Insira o ID público do ficheiro do Google Drive",
+        "alt_name": "Google Drive",
+        "source_string": " através do Google Drive"
+      },
+      "top_info": "Selecione os ficheiros que deseja instalar através do servidor, depois pressione o botão Mais!",
+      "top_info1": "A aguardar ligação... O endereço de IP da Switch é: ",
+      "failed": "A instalação remota falhou!",
+      "transfer_interput": "Ocorreu um erro ao tranferir os dados. Verifique a sua ligação à rede.",
+      "source_string": " através de rede local",
+      "buttons": " Instalar através da Internet     Ajuda     Cancelar",
+      "buttons1": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Cancelar"
+    },
+    "shop": {
+      "loading": "A carregar a lista da loja...",
+      "top_info": "Selecione os ficheiros que deseja instalar da loja e depois pressione o botão Mais!",
+      "failed": "Falha ao carregar a loja",
+      "unreachable": "Não foi possível acessar a loja.",
+      "encrypted_unsupported": "Respostas de loja criptografadas não são suportadas. Desative «Criptografar loja» nas configurações do eShop.",
+      "empty": "A loja não tem ficheiros.",
+      "source_string": " da eShop",
+      "buttons_loading": " Cancelar",
+      "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Atualizar    / Secção     Ver     Cancelar",
+      "buttons_all": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Atualizar    / Secção     Pesquisar     Ver     Cancelar",
+      "search_hint": "Pesquisar em todos os títulos",
+      "update_prompt_title": "Instalar atualizações?",
+      "update_prompt_desc": "Incluir as atualizações disponíveis para os títulos selecionados? Atualizações encontradas: ",
+      "dlc_prompt_title": "Install DLC?",
+      "dlc_prompt_desc": "Include available DLC for selected titles? DLC found: ",
+      "motd_title": "Mensagem do dia",
+      "buttons_installed": " Detalhes     Atualizar    / Secção     Cancelar",
+      "detail_type": "Tipo: ",
+      "detail_titleid": "ID do título: ",
+      "detail_version": "Versão: ",
+      "save_sync": {
+        "title": "Sincronizacao de saves",
+        "status": {
+          "uploading_backup": "Enviando backup do save...",
+          "downloading_backup": "Baixando backup do save...",
+          "packaging": "Empacotando dados do save...",
+          "uploading_archive": "Enviando arquivo do save...",
+          "preparing_restore": "Preparando restauracao do save..."
+        },
+        "progress": {
+          "preparing_upload": "Preparando envio...",
+          "preparing_download": "Preparando download...",
+          "scanning_files": "Analisando arquivos...",
+          "compressing_fmt": "Compactando ",
+          "download_fmt": "Download: ",
+          "download_bytes_fmt": "Download: ",
+          "upload_archive_fmt": "Enviando arquivo: ",
+          "upload_archive_bytes_fmt": "Enviando arquivo: ",
+          "upload_wait_response_fmt": "Envio concluido, aguardando resposta... ",
+          "upload_complete": "Envio concluido.",
+          "starting_download": "Iniciando download do save...",
+          "clearing_existing_files": "Limpando arquivos de save existentes...",
+          "applying_save_data": "Aplicando dados do save...",
+          "restoring_fmt": "Restaurando ",
+          "complete": "Sincronizacao concluida."
+        },
+        "dialog": {
+          "unable_resolve_entry": "Nao foi possivel resolver a entrada de save.",
+          "replace_local_prompt": "Substituir dados locais do save pela copia do servidor?",
+          "delete_selected_fmt": "Excluir backup selecionado do servidor?",
+          "delete_fmt": "Excluir backup do servidor?",
+          "none_available": "Nenhum save local ou remoto esta disponivel para este titulo.",
+          "success_generic": "Sincronizacao concluida com sucesso.",
+          "uploaded_success": "Save enviado com sucesso.",
+          "downloaded_success": "Save baixado com sucesso.",
+          "deleted_success": "Backup do save excluido com sucesso."
+        }
+      }
+    },
+    "sd": {
+      "help": {
+        "title": "Ajuda",
+        "desc": "Copie os ficheiros NSP, NSZ, XCI, ou XCZ para o cartão SD, explore e\nselecione os ficheiros que deseja instalar, depois pressione o botão Mais."
+      },
+      "top_info": "Selecione os ficheiros que deseja instalar, depois pressione o botão Mais!",
+      "source_string": " através do cartão SD",
+      "delete_info": " instalado! Eliminar do cartão SD?",
+      "delete_info_multi": " instalados com sucesso! Eliminar do cartão SD?",
+      "delete_desc": "Os ficheiros originais não são necessários depois de instalados",
+      "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Ajuda     Cancelar"
+    },
+    "hdd": {
+      "help": {
+        "title": "Ajuda",
+        "desc": "Ligue um SSD ou disco rígido USB, procure e selecione ficheiros NSP, NSZ, XCI\nou XCZ e depois pressione o botão Mais."
+      },
+      "top_info": "Selecione os ficheiros que deseja instalar e depois pressione o botão Mais!",
+      "source_string": " a partir da unidade USB",
+      "delete_info": " instalado! Eliminar da unidade USB?",
+      "delete_info_multi": " ficheiros instalados com sucesso! Eliminar da unidade USB?",
+      "delete_desc": "Os ficheiros originais deixam de ser necessários depois de instalados",
+      "buttons": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Ajuda     Cancelar"
+    },
+    "usb": {
+      "help": {
+        "title": "Ajuda",
+        "desc": "Os Ficheiros podem ser instalados através do USB a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC, selecione os ficheiros e envie para\na consola!\n\nInfelizmente as instalações USB requerem configurações epecíficas em algumas\nplataformas causando problemas. Se for o caso,\ntente instalar através da LAN/Internet, ou copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
+      },
+      "top_info": "USB connection successful! Waiting for list of files to be sent...",
+      "top_info2": "Selecione os ficheiros que deseja instalar através do USB, depois pressione o botão Mais!",
+      "error": "A transferência USB expirou ou falhou",
+      "source_string": " através do USB",
+      "buttons": " (Manter primido) Ajuda     (Manter primido) Cancelar",
+      "buttons2": " Selecionar Ficheiro     Selecionar Todos     Instalar Ficheiro(s)     Cancelar"
+    },
+    "target": {
+      "desc0": "Onde será o ",
+      "desc1": " instalado?",
+      "desc00": "Onde serão os ",
+      "desc01": " ficheiros selecionados instalados?",
+      "opt0": "Cartão SD",
+      "opt1": "Memória Interna"
+    },
+    "mtp": {
+      "target": {
+        "title": "Instalação via MTP",
+        "desc": "Onde deve ser instalado?"
+      },
+      "waiting": {
+        "title": "Instalação via MTP",
+        "desc": "Ligue-se ao PC e carregue os ficheiros para a pasta de instalação MTP.",
+        "hint": "Prima B para parar o MTP."
+      },
+      "error": {
+        "title": "Erro MTP",
+        "desc": "Falha na inicialização do servidor MTP."
+      }
+    },
+    "info_page": {
+      "top_info0": "A instalar ",
+      "preparing": "A preparar a instalação...",
+      "failed": "Instalação falhada ",
+      "failed_desc": "Parcialmente instalado o conteúdo poderá ser removido através da applet Definições do Sistema.",
+      "complete": "Instalação completa",
+      "desc0": " ficheiros instalados com sucesso!",
+      "desc1": " instalado!",
+      "downloading": "A transferir ",
+      "at": " às "
+    },
+    "nca_verify": {
+      "title": "Detetada assinatura NCA inválida!",
+      "desc": "O software não assinado corretamente deverá ser instalado apenas de fontes\nconfiáveis. Ficheiros que contiverem repaks de cartuchos ou desbloqueadores de DLC mostrarão\nsempre esta mensagem. Esta verificação pode ser desligada nas definições do CyberFoil.\n\nTem a certeza que deseja continuar a instalação?",
+      "opt1": "Sim, eu compreendo os riscos",
+      "error": "O NCA solicitado não está corretamente assinado: "
+    },
+    "finished": [
+      "Disfrute da \"cópia legal\"!",
+      "Tenho a certeza que depois de experimentar o jogo irá adorar comprá-lo!",
+      "Comprou o joguinho certo? A Nintendo agradece muito a aquisição!",
+      "Ultrapassar DRM é brutal, não é?",
+      "Provavelmente foram salvas seis árvores ao não comprar este jogo! Todo o plástico vai para algum lado!",
+      "Os ninjas da Nintendo foram enviados para sua localização atual.",
+      "Nem foi necessário discutirmos sobre idiologias políticas para chegarmos até aqui!"
+    ]
+  },
+  "sig": {
+    "install": "Instalar",
+    "uninstall": "Desinstalar",
+    "update": "Atualizar",
+    "version_text": "Os patches de assinaturas instalado funcionam até à versão ",
+    "title0": "Instalar patches de assinaturas?",
+    "desc0": "Os patches de assinaturas são necessários para instalar e executar software oficial.",
+    "backup_failed": "Não foi possível salvaguardar o patches.ini do Hekate! Instalar mesmo assim?",
+    "backup_failed_desc": "Se não usar Hekate pode ignorar este aviso.",
+    "download_failed": "Impossível trasnferir os patches de assinaturas",
+    "download_failed_desc": "Talvez tenha definido uma fonte errada nas definições do CyberFoil,\nou o servidor está apenas em baixo neste momento.",
+    "version_text2": "Os patches de assinaturas foram atualizados para funcionar até à versão ",
+    "install_complete": "Instalação completa!",
+    "complete_desc": "Reinicie a consola para aplicar",
+    "restart": "Reiniciar",
+    "later": "Farei isto mais tarde",
+    "extract_failed": "Impossível extrair os ficheiros!",
+    "restore_failed": "Impossível restaurar o patches.ini do Hekate! Continuar a desinstalação?",
+    "uninstall_complete": "Desinstalação completa",
+    "remove_failed": "Impossível remover os patches de assinaturas",
+    "remove_failed_desc": "Os ficheiros foram renomeados ou eliminados",
+    "generic_error": "Falha ao instalar os patches de assinaturas!"
+  },
+  "options": {
+    "menu_items": {
+      "ignore_firm": "Ignorar o requisito de firmeware mínimo imposto pelo título",
+      "nca_verify": "Verificar a assinatura NCA antes da instalação",
+      "boost_mode": "Ativar \"boost mode\" durante as instalações",
+      "ask_delete": "Questionar a eliminação dos ficheiros orginais depois da instalação",
+      "auto_update": "Procurar atualizações do CyberFoil automaticamente",
+      "gay_option": "Remover animé",
+      "sig_url": "URL da fonte dos patches de assinaturas: ",
+      "shop_url": "URL eShop: ",
+      "shop_user": "Utilizador eShop: ",
+      "shop_pass": "Palavra-passe eShop: ",
+      "shop_hide_installed": "Ocultar títulos instalados na eShop",
+      "shop_hide_installed_section": "Ocultar a seção Instalados na eShop",
+      "shop_all_base_only": "Mostrar apenas títulos base na seção Todos",
+      "shop_start_grid_mode": "Iniciar a loja no modo grelha",
+      "shop_reset_icons": "Repor a cache dos ícones da loja",
+      "language": "Idioma: ",
+      "check_update": "Procurar atualizações do CyberFoil",
+      "credits": "Créditos",
+      "sound": "Ativar sons",
+      "oled": "Ativar modo OLED",
+      "mtp_album": "Mostrar unidade Álbum no modo de instalação MTP"
+    },
+    "nca_warn": {
+      "title": "Aviso!",
+      "desc": "Alguns ficheiros instaláveis podem conter conteúdo malicioso! Apenas desligue esta\nfuncionalidade se tiver a certeza que o software que instala\né fidedigno!\n\nTem a certeza que deseja desativar a verificação NCA?",
+      "opt1": "Sim, Eu quero um tijolo"
+    },
+    "sig_hint": "Introduza o URL para obter os patches de assinaturas",
+    "shop": {
+      "url_hint": "Introduza o URL da sua eShop (exemplo: http://192.168.1.2:8465)",
+      "user_hint": "Introduza o seu nome de utilizador eShop (opcional)",
+      "pass_hint": "Introduza a sua palavra-passe eShop (opcional)"
+    },
+    "cache_reset": {
+      "title": "Repor a cache dos ícones da loja?",
+      "desc": "Isto irá eliminar todos os ícones da loja em cache e forçar um novo download na próxima vez que abrir a loja.",
+      "confirm": "Repor"
+    },
+    "update": {
+      "title": "Atualização disponível",
+      "desc0": "CyberFoil ",
+      "desc1": " está disponível! Pronto para atualizar?",
+      "opt0": "Atualizar",
+      "top_info": "A atualizar o CyberFoil ",
+      "bot_info": "A transferir o CyberFoil ",
+      "bot_info2": "A extrair o CyberFoil ",
+      "complete": "Atulização completa!",
+      "failed": "Atualização falhada!",
+      "end_desc": "O software será encerrado.",
+      "title_check_fail": "Sem atualizações",
+      "desc_check_fail": "Esta é a versão mais recente do CyberFoil!"
+    },
+    "credits": {
+      "title": "Agradecimentos às seguintes pessoas!",
+      "desc": "- HookedBehemoth por muitas contribuições\n- Adubbz e outros contribuidores pelo o Tinfoil\n- XorTroll pelo o Plutonium e Goldleaf\n- blawar (estrangulador de esposas) e nicoboss pelo suporte NSZ\n- O pessoal do AtlasNX Discuck (ou pelo menos alguns deles)\n- Tmabém para o pessoal do RetroNX Discuck (sem involvimento direto)\n- namako8982 pela arte da Momiji\n- TheXzoron por ser um idiota"
+    },
+    "language": {
+      "title": "Selecione o idioma do CyberFoil",
+      "desc": "O software será encerrado depois de alterar o idioma. Pressione B para cancelar.",
+      "system_language": "Sistema"
+    },
+    "title": "Alteração de deifinições do CyberFoil!",
+    "buttons": " Selecionar/Alterar     Cancelar"
+  },
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "yes": "Sim",
+    "no": "Não",
+    "cancel_desc": "Pressione B para cancelar"
+  }
 }
-
-
-
-
-
-

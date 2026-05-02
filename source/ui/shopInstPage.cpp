@@ -11,6 +11,7 @@
 #include <SDL2/SDL.h>
 #include <switch.h>
 #include "ui/MainApplication.hpp"
+#include "ui/instPage.hpp"
 #include "ui/shopInstPage.hpp"
 #include "ui/overflowText.hpp"
 #include "util/config.hpp"
@@ -2419,15 +2420,15 @@ namespace inst::ui {
             });
             if (it == this->saveSyncEntries.end()) {
                 this->closeSaveVersionSelector(true);
-                mainApp->CreateShowDialog("Save Sync", "Unable to resolve save entry.", {"common.ok"_lang}, true);
+                mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, "inst.shop.save_sync.dialog.unable_resolve_entry"_lang, {"common.ok"_lang}, true);
                 return true;
             }
 
             if (this->saveVersionSelectorLocalAvailable) {
                 if (!this->saveVersionSelectorDeleteMode) {
                     const int overwriteChoice = mainApp->CreateShowDialog(
-                        "Save Sync",
-                        "Replace local save data with the server copy?",
+                        "inst.shop.save_sync.title"_lang,
+                        "inst.shop.save_sync.dialog.replace_local_prompt"_lang,
                         {"common.yes"_lang, "common.no"_lang},
                         false);
                     if (overwriteChoice != 0)
@@ -2438,11 +2439,19 @@ namespace inst::ui {
             const auto& selectedVersion = this->saveVersionSelectorVersions[static_cast<std::size_t>(selectedIndex)];
             std::string error;
             bool ok = false;
+            const bool showTransferProgress = !this->saveVersionSelectorDeleteMode;
+            if (showTransferProgress) {
+                inst::ui::instPage::loadInstallScreen();
+                inst::ui::instPage::setTopInstInfoText("inst.shop.save_sync.title"_lang);
+                inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.downloading_backup"_lang);
+                inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.preparing_download"_lang);
+                inst::ui::instPage::setInstBarPerc(0);
+            }
             if (this->saveVersionSelectorDeleteMode) {
                 std::string saveIdText = selectedVersion.saveId.empty() ? "unknown" : selectedVersion.saveId;
                 const int confirmDelete = mainApp->CreateShowDialog(
-                    "Save Sync",
-                    "Delete selected server backup?\nID: " + inst::util::shortenString(saveIdText, 52, false),
+                    "inst.shop.save_sync.title"_lang,
+                    "inst.shop.save_sync.dialog.delete_selected_fmt"_lang + "\nID: " + inst::util::shortenString(saveIdText, 52, false),
                     {"Delete", "common.cancel"_lang},
                     false);
                 if (confirmDelete != 0)
@@ -2464,14 +2473,16 @@ namespace inst::ui {
                     &selectedVersion,
                     error);
             }
+            if (showTransferProgress)
+                mainApp->LoadLayout(mainApp->shopinstPage);
             if (!ok) {
                 if (error.empty())
                     error = "Save sync failed.";
-                mainApp->CreateShowDialog("Save Sync", error, {"common.ok"_lang}, true);
+                mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, error, {"common.ok"_lang}, true);
                 return true;
             }
 
-            mainApp->CreateShowDialog("Save Sync", this->saveVersionSelectorDeleteMode ? "Save backup deleted successfully." : "Save downloaded successfully.", {"common.ok"_lang}, true);
+            mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, this->saveVersionSelectorDeleteMode ? "inst.shop.save_sync.dialog.deleted_success"_lang : "inst.shop.save_sync.dialog.downloaded_success"_lang, {"common.ok"_lang}, true);
             const std::uint64_t selectedTitleId = this->saveVersionSelectorTitleId;
             const int previousSectionIndex = this->saveVersionSelectorPreviousSectionIndex;
             this->closeSaveVersionSelector(false);
@@ -2494,7 +2505,7 @@ namespace inst::ui {
             return entry.titleId == selectedItem.titleId;
         });
         if (it == this->saveSyncEntries.end()) {
-            mainApp->CreateShowDialog("Save Sync", "Unable to resolve save entry.", {"common.ok"_lang}, true);
+            mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, "inst.shop.save_sync.dialog.unable_resolve_entry"_lang, {"common.ok"_lang}, true);
             return;
         }
 
@@ -2516,12 +2527,12 @@ namespace inst::ui {
             actions.push_back(3);
         }
         if (actions.empty()) {
-            mainApp->CreateShowDialog("Save Sync", "No local or remote save is available for this title.", {"common.ok"_lang}, true);
+            mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, "inst.shop.save_sync.dialog.none_available"_lang, {"common.ok"_lang}, true);
             return;
         }
         options.push_back("common.cancel"_lang);
 
-        int choice = mainApp->CreateShowDialog("Save Sync", it->titleName, options, false);
+        int choice = mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, it->titleName, options, false);
         if (choice < 0 || choice >= static_cast<int>(actions.size()))
             return;
 
@@ -2546,8 +2557,8 @@ namespace inst::ui {
 
         if (actions[choice] == 2 && it->localAvailable) {
             const int overwriteChoice = mainApp->CreateShowDialog(
-                "Save Sync",
-                "Replace local save data with the server copy?",
+                "inst.shop.save_sync.title"_lang,
+                "inst.shop.save_sync.dialog.replace_local_prompt"_lang,
                 {"common.yes"_lang, "common.no"_lang},
                 false);
             if (overwriteChoice != 0)
@@ -2558,8 +2569,8 @@ namespace inst::ui {
                 ? selectedRemoteVersion->saveId
                 : "latest";
             const int confirmDelete = mainApp->CreateShowDialog(
-                "Save Sync",
-                "Delete server backup?\nID: " + inst::util::shortenString(saveIdText, 52, false),
+                "inst.shop.save_sync.title"_lang,
+                "inst.shop.save_sync.dialog.delete_fmt"_lang + "\nID: " + inst::util::shortenString(saveIdText, 52, false),
                 {"Delete", "common.cancel"_lang},
                 false);
             if (confirmDelete != 0)
@@ -2568,6 +2579,20 @@ namespace inst::ui {
 
         std::string error;
         bool ok = false;
+        const bool showTransferProgress = (actions[choice] == 1 || actions[choice] == 2);
+        if (showTransferProgress) {
+            inst::ui::instPage::loadInstallScreen();
+            inst::ui::instPage::setTopInstInfoText("inst.shop.save_sync.title"_lang);
+            if (actions[choice] == 1) {
+                inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.uploading_backup"_lang);
+                inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.preparing_upload"_lang);
+            } else {
+                inst::ui::instPage::setInstInfoText("inst.shop.save_sync.status.downloading_backup"_lang);
+                inst::ui::instPage::setProgressDetailText("inst.shop.save_sync.progress.preparing_download"_lang);
+            }
+            inst::ui::instPage::setInstBarPerc(0);
+        }
+
         if (actions[choice] == 1) {
             ok = inst::save_sync::UploadSaveToServer(this->activeShopUrl, inst::config::shopUser, inst::config::shopPass, *it, uploadNote, error);
         } else if (actions[choice] == 2) {
@@ -2576,21 +2601,24 @@ namespace inst::ui {
             ok = inst::save_sync::DeleteSaveFromServer(this->activeShopUrl, inst::config::shopUser, inst::config::shopPass, *it, selectedRemoteVersion, error);
         }
 
+        if (showTransferProgress)
+            mainApp->LoadLayout(mainApp->shopinstPage);
+
         if (!ok) {
             if (error.empty())
                 error = "Save sync failed.";
-            mainApp->CreateShowDialog("Save Sync", error, {"common.ok"_lang}, true);
+            mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, error, {"common.ok"_lang}, true);
             return;
         }
 
-        std::string successMessage = "Save sync completed successfully.";
+        std::string successMessage = "inst.shop.save_sync.dialog.success_generic"_lang;
         if (actions[choice] == 1)
-            successMessage = "Save uploaded successfully.";
+            successMessage = "inst.shop.save_sync.dialog.uploaded_success"_lang;
         else if (actions[choice] == 2)
-            successMessage = "Save downloaded successfully.";
+            successMessage = "inst.shop.save_sync.dialog.downloaded_success"_lang;
         else if (actions[choice] == 3)
-            successMessage = "Save backup deleted successfully.";
-        mainApp->CreateShowDialog("Save Sync", successMessage, {"common.ok"_lang}, true);
+            successMessage = "inst.shop.save_sync.dialog.deleted_success"_lang;
+        mainApp->CreateShowDialog("inst.shop.save_sync.title"_lang, successMessage, {"common.ok"_lang}, true);
         this->refreshSaveSyncSection(selectedTitleId, previousSectionIndex);
     }
 

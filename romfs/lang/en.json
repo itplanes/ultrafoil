@@ -105,7 +105,45 @@
             "buttons_installed": " Details     Refresh    / Section     Cancel",
             "detail_type": "Type: ",
             "detail_titleid": "Title ID: ",
-            "detail_version": "Version: "
+            "detail_version": "Version: ",
+            "save_sync": {
+                "title": "Save Sync",
+                "status": {
+                    "uploading_backup": "Uploading save backup...",
+                    "downloading_backup": "Downloading save backup...",
+                    "packaging": "Packaging save data...",
+                    "uploading_archive": "Uploading save archive...",
+                    "preparing_restore": "Preparing save restore..."
+                },
+                "progress": {
+                    "preparing_upload": "Preparing upload...",
+                    "preparing_download": "Preparing download...",
+                    "scanning_files": "Scanning files...",
+                    "compressing_fmt": "Compressing ",
+                    "download_fmt": "Download: ",
+                    "download_bytes_fmt": "Download: ",
+                    "upload_archive_fmt": "Uploading archive: ",
+                    "upload_archive_bytes_fmt": "Uploading archive: ",
+                    "upload_wait_response_fmt": "Upload complete, waiting response... ",
+                    "upload_complete": "Upload complete.",
+                    "starting_download": "Starting save download...",
+                    "clearing_existing_files": "Clearing existing save files...",
+                    "applying_save_data": "Applying save data...",
+                    "restoring_fmt": "Restoring ",
+                    "complete": "Save sync complete."
+                },
+                "dialog": {
+                    "unable_resolve_entry": "Unable to resolve save entry.",
+                    "replace_local_prompt": "Replace local save data with the server copy?",
+                    "delete_selected_fmt": "Delete selected server backup?",
+                    "delete_fmt": "Delete server backup?",
+                    "none_available": "No local or remote save is available for this title.",
+                    "success_generic": "Save sync completed successfully.",
+                    "uploaded_success": "Save uploaded successfully.",
+                    "downloaded_success": "Save downloaded successfully.",
+                    "deleted_success": "Save backup deleted successfully."
+                }
+            }
         },
         "sd": {
             "help": {
