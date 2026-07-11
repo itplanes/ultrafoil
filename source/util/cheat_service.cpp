@@ -12,6 +12,7 @@
 #include "util/config.hpp"
 #include "util/curl.hpp"
 #include "util/json.hpp"
+#include "util/title_util.hpp"
 
 namespace inst::cheats {
     namespace {
@@ -204,6 +205,109 @@ namespace inst::cheats {
             error = std::string("Invalid cheat response: ") + ex.what();
             return false;
         }
+    }
+
+    bool ListInstalledTitles(std::vector<InstalledTitle>& out, std::string& error)
+    {
+        out.clear();
+        error.clear();
+        constexpr s32 chunk = 64;
+        s32 offset = 0;
+        while (true) {
+            NsApplicationRecord records[chunk]{};
+            s32 count = 0;
+            const Result rc = nsListApplicationRecord(records, chunk, offset, &count);
+            if (R_FAILED(rc)) {
+                error = "Unable to list installed games.";
+                return false;
+            }
+            if (count <= 0)
+                break;
+            for (s32 i = 0; i < count; i++) {
+                if (records[i].application_id == 0)
+                    continue;
+                InstalledTitle title;
+                title.titleId = records[i].application_id;
+                title.name = tin::util::GetBaseTitleName(title.titleId);
+                if (title.name.empty())
+                    title.name = FormatTitleId(title.titleId);
+                out.push_back(std::move(title));
+            }
+            offset += count;
+            if (count < chunk)
+                break;
+        }
+        std::sort(out.begin(), out.end(), [](const InstalledTitle& a, const InstalledTitle& b) { return a.name < b.name; });
+        return true;
+    }
+
+    bool FetchAllBuilds(std::uint64_t titleId, std::vector<BuildBundle>& out, std::string& error)
+    {
+        out.clear();
+        error.clear();
+        if (titleId == 0 || ApiBase().empty()) {
+            error = "Configure an AeroFoil Remote before downloading cheats.";
+            return false;
+        }
+        const std::string url = ApiBase() + "/api/cheats/titles/" + FormatTitleId(titleId) + "/bundle";
+        const std::string body = inst::curl::downloadToBufferWithAuth(url, inst::config::remoteUser, inst::config::remotePass, 60000L);
+        if (body.empty()) {
+            error = "AeroFoil did not return a cheat bundle.";
+            return false;
+        }
+        try {
+            const auto json = nlohmann::json::parse(body);
+            if (!json.contains("builds") || !json["builds"].is_array())
+                return true;
+            for (const auto& item : json["builds"]) {
+                BuildBundle build;
+                build.buildId = item.value("build_id", "");
+                build.content = item.value("content", "");
+                build.entryCount = item.value("entry_count", 0U);
+                if (!IsHex16(build.buildId) || build.content.empty() || build.content.size() > kMaxCheatFileSize)
+                    continue;
+                if (item.contains("conflicts") && item["conflicts"].is_array()) {
+                    for (const auto& conflict : item["conflicts"]) {
+                        const std::string group = conflict.value("group", "");
+                        if (!group.empty()) build.conflictGroups.push_back(group);
+                    }
+                }
+                out.push_back(std::move(build));
+            }
+            return true;
+        } catch (const std::exception& ex) {
+            error = std::string("Invalid cheat bundle: ") + ex.what();
+            return false;
+        }
+    }
+
+    bool InstallAllBuilds(std::uint64_t titleId, const std::vector<BuildBundle>& builds, std::size_t& installed, std::string& error)
+    {
+        installed = 0;
+        for (const auto& build : builds) {
+            Target target{titleId, build.buildId};
+            Entry entry;
+            entry.id = "bundle";
+            entry.name = "AeroFoil managed bundle";
+            entry.source = "AeroFoil";
+            entry.content = build.content;
+            entry.conflictGroups = build.conflictGroups;
+            if (!Install(target, entry, error))
+                return false;
+            installed++;
+        }
+        return true;
+    }
+
+    bool RemoveAllBuilds(std::uint64_t titleId, const std::vector<BuildBundle>& builds, std::size_t& removed, std::string& error)
+    {
+        removed = 0;
+        for (const auto& build : builds) {
+            Target target{titleId, build.buildId};
+            if (IsInstalled(target)) removed++;
+            if (!Remove(target, error)) return false;
+        }
+        return true;
     }
 
     bool Install(const Target& target, const Entry& entry, std::string& error)

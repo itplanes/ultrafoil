@@ -465,7 +465,62 @@ namespace inst::ui {
         inst::cheats::Target target;
         std::string error;
         if (!inst::cheats::GetRunningTarget(target, error)) {
-            mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
+            std::vector<inst::cheats::InstalledTitle> titles;
+            if (!inst::cheats::ListInstalledTitles(titles, error) || titles.empty()) {
+                mainApp->CreateShowDialog("Cheats", error.empty() ? "No installed games were found." : error, {"common.ok"_lang}, true);
+                return;
+            }
+            std::vector<std::string> titleChoices;
+            const std::size_t shownTitles = std::min<std::size_t>(titles.size(), 20);
+            for (std::size_t i = 0; i < shownTitles; i++)
+                titleChoices.push_back(inst::util::shortenString(titles[i].name, 58, false) + " [" + inst::cheats::FormatTitleId(titles[i].titleId) + "]");
+            titleChoices.push_back("common.cancel"_lang);
+            const int titleSelected = mainApp->CreateShowDialog(
+                "Offline cheat management",
+                "No game is running. Select an installed game to preinstall every available Build ID bundle.",
+                titleChoices,
+                false);
+            if (titleSelected < 0 || titleSelected >= static_cast<int>(shownTitles))
+                return;
+
+            const auto& selectedTitle = titles[static_cast<std::size_t>(titleSelected)];
+            std::vector<inst::cheats::BuildBundle> builds;
+            if (!inst::cheats::FetchAllBuilds(selectedTitle.titleId, builds, error)) {
+                mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
+                return;
+            }
+            if (builds.empty()) {
+                mainApp->CreateShowDialog("Cheats", "No cheat bundles are available for this game.", {"common.ok"_lang}, true);
+                return;
+            }
+            std::size_t totalEntries = 0;
+            std::size_t conflictBuilds = 0;
+            bool anyInstalled = false;
+            for (const auto& build : builds) {
+                totalEntries += build.entryCount;
+                if (!build.conflictGroups.empty()) conflictBuilds++;
+                if (inst::cheats::IsInstalled({selectedTitle.titleId, build.buildId})) anyInstalled = true;
+            }
+            std::string summary = selectedTitle.name + "\nTitle ID: " + inst::cheats::FormatTitleId(selectedTitle.titleId) +
+                "\n\nBuild IDs: " + std::to_string(builds.size()) + "\nSwitchable entries: " + std::to_string(totalEntries);
+            if (conflictBuilds)
+                summary += "\nConflict warning: " + std::to_string(conflictBuilds) + " build bundle(s) contain mutually exclusive choices. Do not enable conflicting FPS/resolution/graphics entries together.";
+            summary += "\n\nUse a dmnt-compatible overlay such as EdiZon/Breeze to toggle entries. For safety, set dmnt_cheats_enabled_by_default = u8!0x0 in Atmosphere system_settings.ini.";
+            std::vector<std::string> actions = {anyInstalled ? "Update all Build ID bundles" : "Install all Build ID bundles"};
+            if (anyInstalled) actions.push_back("Remove managed Build ID bundles");
+            actions.push_back("common.cancel"_lang);
+            const int action = mainApp->CreateShowDialog("Manage cheat bundles", summary, actions, false);
+            if (action < 0 || action == static_cast<int>(actions.size() - 1)) return;
+            std::size_t changed = 0;
+            bool ok = false;
+            if (anyInstalled && action == 1)
+                ok = inst::cheats::RemoveAllBuilds(selectedTitle.titleId, builds, changed, error);
+            else
+                ok = inst::cheats::InstallAllBuilds(selectedTitle.titleId, builds, changed, error);
+            if (ok)
+                mainApp->CreateShowDialog("Cheats", std::to_string(changed) + (anyInstalled && action == 1 ? " managed files removed." : " Build ID bundles installed."), {"common.ok"_lang}, true);
+            else
+                mainApp->CreateShowDialog("Cheats", "Operation stopped after " + std::to_string(changed) + " file(s):\n" + error, {"common.ok"_lang}, true);
             return;
         }
 
