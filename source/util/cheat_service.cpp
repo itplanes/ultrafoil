@@ -211,20 +211,33 @@ namespace inst::cheats {
     {
         out.clear();
         error.clear();
+        Result rc = nsInitialize();
+        if (R_FAILED(rc)) {
+            std::ostringstream message;
+            message << "Unable to initialize the application service (0x" << std::uppercase << std::hex << rc << ").";
+            error = message.str();
+            return false;
+        }
         constexpr s32 chunk = 64;
         s32 offset = 0;
         while (true) {
             NsApplicationRecord records[chunk]{};
             s32 count = 0;
-            const Result rc = nsListApplicationRecord(records, chunk, offset, &count);
+            rc = nsListApplicationRecord(records, chunk, offset, &count);
             if (R_FAILED(rc)) {
-                error = "Unable to list installed games.";
+                std::ostringstream message;
+                message << "Unable to list installed games (0x" << std::uppercase << std::hex << rc << ").";
+                error = message.str();
+                nsExit();
                 return false;
             }
             if (count <= 0)
                 break;
             for (s32 i = 0; i < count; i++) {
                 if (records[i].application_id == 0)
+                    continue;
+                s32 metaCount = 0;
+                if (R_FAILED(nsCountApplicationContentMeta(records[i].application_id, &metaCount)) || metaCount <= 0)
                     continue;
                 InstalledTitle title;
                 title.titleId = records[i].application_id;
@@ -237,6 +250,7 @@ namespace inst::cheats {
             if (count < chunk)
                 break;
         }
+        nsExit();
         std::sort(out.begin(), out.end(), [](const InstalledTitle& a, const InstalledTitle& b) { return a.name < b.name; });
         return true;
     }
