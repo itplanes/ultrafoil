@@ -241,6 +241,16 @@ namespace inst::cheats {
                     continue;
                 InstalledTitle title;
                 title.titleId = records[i].application_id;
+                std::vector<NsApplicationContentMetaStatus> statuses(static_cast<std::size_t>(metaCount));
+                s32 statusCount = 0;
+                if (R_SUCCEEDED(nsListApplicationContentMetaStatus(title.titleId, 0, statuses.data(), metaCount, &statusCount))) {
+                    for (s32 j = 0; j < statusCount; j++) {
+                        if (statuses[j].meta_type == NcmContentMetaType_Patch)
+                            title.version = std::max(title.version, statuses[j].version);
+                        else if (statuses[j].meta_type == NcmContentMetaType_Application && title.version == 0)
+                            title.version = statuses[j].version;
+                    }
+                }
                 title.name = tin::util::GetBaseTitleName(title.titleId);
                 if (title.name.empty())
                     title.name = FormatTitleId(title.titleId);
@@ -278,6 +288,12 @@ namespace inst::cheats {
                 build.buildId = item.value("build_id", "");
                 build.content = item.value("content", "");
                 build.entryCount = item.value("entry_count", 0U);
+                build.version = item.value("version", 0U);
+                build.versionLabel = item.value("version_label", "");
+                if (json.contains("attributions") && json["attributions"].is_array()) {
+                    for (const auto& value : json["attributions"])
+                        if (value.is_string()) build.attributions.push_back(value.get<std::string>());
+                }
                 if (!IsHex16(build.buildId) || build.content.empty() || build.content.size() > kMaxCheatFileSize)
                     continue;
                 if (item.contains("conflicts") && item["conflicts"].is_array()) {

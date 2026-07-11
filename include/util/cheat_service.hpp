@@ -22,12 +22,16 @@ namespace inst::cheats {
     struct InstalledTitle {
         std::uint64_t titleId = 0;
         std::string name;
+        std::uint32_t version = 0;
     };
 
     struct BuildBundle {
         std::string buildId;
         std::string content;
         std::size_t entryCount = 0;
+        std::uint32_t version = 0;
+        std::string versionLabel;
+        std::vector<std::string> attributions;
         std::vector<std::string> conflictGroups;
     };
 

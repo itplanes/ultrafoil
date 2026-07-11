@@ -502,30 +502,56 @@ namespace inst::ui {
                 mainApp->CreateShowDialog("Cheats", "No cheat bundles are available for this game.", {"common.ok"_lang}, true);
                 return;
             }
+            std::vector<inst::cheats::BuildBundle> compatibleBuilds;
+            if (selectedTitle.version > 0) {
+                for (const auto& build : builds)
+                    if (build.version == selectedTitle.version) compatibleBuilds.push_back(build);
+            }
+            if (compatibleBuilds.empty()) {
+                std::string available;
+                for (const auto& build : builds) {
+                    if (build.versionLabel.empty()) continue;
+                    if (!available.empty()) available += ", ";
+                    available += build.versionLabel;
+                    if (available.size() > 120) { available += "..."; break; }
+                }
+                std::string mismatch = selectedTitle.name + "\nInstalled internal version: " + std::to_string(selectedTitle.version) +
+                    "\n\nNo cheat Build ID is confirmed for the installed version.";
+                if (!available.empty()) mismatch += "\nAdapted versions: " + available;
+                mismatch += "\n\nNothing was installed. Start the game for an exact Build ID check.";
+                mainApp->CreateShowDialog("No compatible cheat version", mismatch, {"common.ok"_lang}, true);
+                return;
+            }
             std::size_t totalEntries = 0;
             std::size_t conflictBuilds = 0;
             bool anyInstalled = false;
-            for (const auto& build : builds) {
+            for (const auto& build : compatibleBuilds) {
                 totalEntries += build.entryCount;
                 if (!build.conflictGroups.empty()) conflictBuilds++;
                 if (inst::cheats::IsInstalled({selectedTitle.titleId, build.buildId})) anyInstalled = true;
             }
+            std::string versionLabel = compatibleBuilds.front().versionLabel.empty()
+                ? std::to_string(selectedTitle.version) : compatibleBuilds.front().versionLabel;
             std::string summary = selectedTitle.name + "\nTitle ID: " + inst::cheats::FormatTitleId(selectedTitle.titleId) +
-                "\n\nBuild IDs: " + std::to_string(builds.size()) + "\nSwitchable entries: " + std::to_string(totalEntries);
+                "\nInstalled/adapted version: " + versionLabel +
+                "\nBuild ID: " + compatibleBuilds.front().buildId +
+                "\nSwitchable entries: " + std::to_string(totalEntries);
+            if (!compatibleBuilds.front().attributions.empty())
+                summary += "\nAdapter/source: " + inst::util::shortenString(compatibleBuilds.front().attributions.front(), 70, false);
             if (conflictBuilds)
                 summary += "\nConflict warning: " + std::to_string(conflictBuilds) + " build bundle(s) contain mutually exclusive choices. Do not enable conflicting FPS/resolution/graphics entries together.";
             summary += "\n\nUse a dmnt-compatible overlay such as EdiZon/Breeze to toggle entries. For safety, set dmnt_cheats_enabled_by_default = u8!0x0 in Atmosphere system_settings.ini.";
-            std::vector<std::string> actions = {anyInstalled ? "Update all Build ID bundles" : "Install all Build ID bundles"};
-            if (anyInstalled) actions.push_back("Remove managed Build ID bundles");
+            std::vector<std::string> actions = {anyInstalled ? "Update compatible cheats" : "Install compatible cheats"};
+            if (anyInstalled) actions.push_back("Remove compatible cheats");
             actions.push_back("common.cancel"_lang);
             const int action = mainApp->CreateShowDialog("Manage cheat bundles", summary, actions, false);
             if (action < 0 || action == static_cast<int>(actions.size() - 1)) return;
             std::size_t changed = 0;
             bool ok = false;
             if (anyInstalled && action == 1)
-                ok = inst::cheats::RemoveAllBuilds(selectedTitle.titleId, builds, changed, error);
+                ok = inst::cheats::RemoveAllBuilds(selectedTitle.titleId, compatibleBuilds, changed, error);
             else
-                ok = inst::cheats::InstallAllBuilds(selectedTitle.titleId, builds, changed, error);
+                ok = inst::cheats::InstallAllBuilds(selectedTitle.titleId, compatibleBuilds, changed, error);
             if (ok)
                 mainApp->CreateShowDialog("Cheats", std::to_string(changed) + (anyInstalled && action == 1 ? " managed files removed." : " Build ID bundles installed."), {"common.ok"_lang}, true);
             else
