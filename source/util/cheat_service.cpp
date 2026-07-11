@@ -17,6 +17,25 @@ namespace inst::cheats {
     namespace {
         constexpr std::size_t kMaxCheatFileSize = 1024U * 1024U;
 
+        struct DmntMemoryRegionExtents {
+            std::uint64_t base;
+            std::uint64_t size;
+        };
+
+        // Atmosphere dmnt:cht command 65002 output ABI. This type is not
+        // currently exposed by libnx, so keep the full fixed layout locally.
+        struct DmntCheatProcessMetadata {
+            std::uint64_t process_id;
+            std::uint64_t title_id;
+            DmntMemoryRegionExtents main_nso_extents;
+            DmntMemoryRegionExtents heap_extents;
+            DmntMemoryRegionExtents alias_extents;
+            DmntMemoryRegionExtents address_space_extents;
+            std::uint8_t main_nso_build_id[0x20];
+        };
+
+        static_assert(sizeof(DmntCheatProcessMetadata) == 0x70, "Unexpected dmnt metadata ABI size");
+
         bool IsHex16(const std::string& value)
         {
             return value.size() == 16 && std::all_of(value.begin(), value.end(), [](unsigned char c) {
