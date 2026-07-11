@@ -470,20 +470,29 @@ namespace inst::ui {
                 mainApp->CreateShowDialog("Cheats", error.empty() ? "No installed games were found." : error, {"common.ok"_lang}, true);
                 return;
             }
-            std::vector<std::string> titleChoices;
-            const std::size_t shownTitles = std::min<std::size_t>(titles.size(), 20);
-            for (std::size_t i = 0; i < shownTitles; i++)
-                titleChoices.push_back(inst::util::shortenString(titles[i].name, 58, false) + " [" + inst::cheats::FormatTitleId(titles[i].titleId) + "]");
-            titleChoices.push_back("common.cancel"_lang);
-            const int titleSelected = mainApp->CreateShowDialog(
-                "Offline cheat management",
-                "No game is running. Select an installed game to preinstall every available Build ID bundle.",
-                titleChoices,
-                false);
-            if (titleSelected < 0 || titleSelected >= static_cast<int>(shownTitles))
-                return;
+            std::size_t selectedTitleIndex = 0;
+            while (true) {
+                const auto& preview = titles[selectedTitleIndex];
+                const std::string message =
+                    inst::util::shortenString(preview.name, 64, false) +
+                    "\nTitle ID: " + inst::cheats::FormatTitleId(preview.titleId) +
+                    "\n\nGame " + std::to_string(selectedTitleIndex + 1) + " / " + std::to_string(titles.size());
+                const int selected = mainApp->CreateShowDialog(
+                    "Offline cheat management",
+                    message,
+                    {"Select", "Previous", "Next", "common.cancel"_lang},
+                    false);
+                if (selected < 0 || selected == 3)
+                    return;
+                if (selected == 0)
+                    break;
+                if (selected == 1)
+                    selectedTitleIndex = selectedTitleIndex == 0 ? titles.size() - 1 : selectedTitleIndex - 1;
+                else if (selected == 2)
+                    selectedTitleIndex = (selectedTitleIndex + 1) % titles.size();
+            }
 
-            const auto& selectedTitle = titles[static_cast<std::size_t>(titleSelected)];
+            const auto& selectedTitle = titles[selectedTitleIndex];
             std::vector<inst::cheats::BuildBundle> builds;
             if (!inst::cheats::FetchAllBuilds(selectedTitle.titleId, builds, error)) {
                 mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
