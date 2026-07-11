@@ -53,6 +53,47 @@ namespace inst::cheats {
             return CheatDirectory(target) + "/" + target.buildId + ".txt";
         }
 
+        std::string MetadataPath(const Target& target)
+        {
+            return inst::config::appDir + "/cheat_state/" + FormatTitleId(target.titleId) + "/" + target.buildId + ".json";
+        }
+
+        void ReadStringArray(const nlohmann::json& object, const char* key, std::vector<std::string>& out)
+        {
+            out.clear();
+            if (!object.contains(key) || !object[key].is_array())
+                return;
+            for (const auto& value : object[key]) {
+                if (value.is_string())
+                    out.push_back(value.get<std::string>());
+            }
+        }
+
+        bool WriteMetadata(const Target& target, const Entry& entry)
+        {
+            const std::string path = MetadataPath(target);
+            const std::string tempPath = path + ".tmp";
+            std::filesystem::create_directories(std::filesystem::path(path).parent_path());
+            nlohmann::json json = {
+                {"id", entry.id},
+                {"name", entry.name},
+                {"source", entry.source},
+                {"tags", entry.tags},
+                {"conflict_groups", entry.conflictGroups}
+            };
+            std::ofstream output(tempPath, std::ios::binary | std::ios::trunc);
+            if (!output)
+                return false;
+            output << json.dump(2) << '\n';
+            output.close();
+            if (!output)
+                return false;
+            if (std::filesystem::exists(path))
+                std::filesystem::remove(path);
+            std::filesystem::rename(tempPath, path);
+            return true;
+        }
+
         std::string ApiBase()
         {
             std::string base = inst::config::remoteUrl;
@@ -152,6 +193,8 @@ namespace inst::cheats {
                 entry.name = item.value("name", "Unnamed cheat");
                 entry.content = item.value("content", "");
                 entry.source = item.value("source", "unknown");
+                ReadStringArray(item, "tags", entry.tags);
+                ReadStringArray(item, "conflict_groups", entry.conflictGroups);
                 if (entry.id.size() != 64 || entry.content.empty() || entry.content.size() > kMaxCheatFileSize)
                     continue;
                 out.push_back(std::move(entry));
@@ -198,6 +241,10 @@ namespace inst::cheats {
                 std::filesystem::rename(targetPath, backupPath);
             }
             std::filesystem::rename(tempPath, targetPath);
+            if (!WriteMetadata(target, entry)) {
+                error = "Cheat installed, but its conflict metadata could not be saved.";
+                return true;
+            }
             return true;
         } catch (const std::exception& ex) {
             error = ex.what();
@@ -210,12 +257,19 @@ namespace inst::cheats {
         error.clear();
         try {
             const std::string path = CheatPath(target);
-            if (!std::filesystem::exists(path))
+            if (!std::filesystem::exists(path)) {
+                const std::string metadataPath = MetadataPath(target);
+                if (std::filesystem::exists(metadataPath))
+                    std::filesystem::remove(metadataPath);
                 return true;
+            }
             if (!std::filesystem::remove(path)) {
                 error = "Unable to remove the cheat file.";
                 return false;
             }
+            const std::string metadataPath = MetadataPath(target);
+            if (std::filesystem::exists(metadataPath))
+                std::filesystem::remove(metadataPath);
             return true;
         } catch (const std::exception& ex) {
             error = ex.what();
@@ -226,5 +280,60 @@ namespace inst::cheats {
     bool IsInstalled(const Target& target)
     {
         return target.titleId != 0 && IsHex16(target.buildId) && std::filesystem::exists(CheatPath(target));
+    }
+
+    bool GetInstalledMetadata(const Target& target, Entry& out)
+    {
+        out = {};
+        try {
+            std::ifstream input(MetadataPath(target), std::ios::binary);
+            if (!input)
+                return false;
+            nlohmann::json json;
+            input >> json;
+            if (!json.is_object())
+                return false;
+            out.id = json.value("id", "");
+            out.name = json.value("name", "Installed cheat");
+            out.source = json.value("source", "unknown");
+            ReadStringArray(json, "tags", out.tags);
+            ReadStringArray(json, "conflict_groups", out.conflictGroups);
+            return !out.id.empty();
+        } catch (...) {
+            return false;
+        }
+    }
+
+    std::vector<std::string> FindConflicts(const Entry& installed, const Entry& candidate)
+    {
+        std::vector<std::string> conflicts;
+        for (const auto& candidateGroup : candidate.conflictGroups) {
+            if (std::find(installed.conflictGroups.begin(), installed.conflictGroups.end(), candidateGroup) != installed.conflictGroups.end() &&
+                std::find(conflicts.begin(), conflicts.end(), candidateGroup) == conflicts.end()) {
+                conflicts.push_back(candidateGroup);
+            }
+        }
+        return conflicts;
+    }
+
+    std::string FormatTags(const Entry& entry)
+    {
+        std::string result;
+        auto add = [&](const char* value) {
+            if (!result.empty())
+                result += " ";
+            result += value;
+        };
+        for (const auto& tag : entry.tags) {
+            if (tag == "fps")
+                add("[FPS]");
+            else if (tag == "resolution")
+                add("[RES]");
+            else if (tag == "graphics")
+                add("[GFX]");
+        }
+        if (result.empty())
+            add("[CHEAT]");
+        return result;
     }
 }

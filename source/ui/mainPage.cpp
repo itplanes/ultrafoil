@@ -493,7 +493,7 @@ namespace inst::ui {
             choices.push_back("Remove installed cheat file");
         const std::size_t shown = std::min<std::size_t>(entries.size(), 20);
         for (std::size_t i = 0; i < shown; i++) {
-            std::string label = entries[i].name;
+            std::string label = inst::cheats::FormatTags(entries[i]) + " " + entries[i].name;
             if (!entries[i].source.empty())
                 label += " [" + entries[i].source + "]";
             choices.push_back(inst::util::shortenString(label, 80, false));
@@ -518,8 +518,36 @@ namespace inst::ui {
         const std::size_t entryIndex = static_cast<std::size_t>(selected - (installed ? 1 : 0));
         if (entryIndex >= shown)
             return;
-        if (inst::cheats::Install(target, entries[entryIndex], error))
-            mainApp->CreateShowDialog("Cheats", "Cheat installed. Restart the game or reload cheats in your overlay.", {"common.ok"_lang}, true);
+        const auto& candidate = entries[entryIndex];
+        if (installed) {
+            inst::cheats::Entry installedEntry;
+            const bool hasMetadata = inst::cheats::GetInstalledMetadata(target, installedEntry);
+            const auto conflicts = hasMetadata ? inst::cheats::FindConflicts(installedEntry, candidate) : std::vector<std::string>{};
+            std::string prompt;
+            std::string title = "Replace installed cheat?";
+            if (!conflicts.empty()) {
+                title = "Mutually exclusive cheat";
+                prompt = "The installed and selected cheats modify the same setting:\n";
+                for (const auto& group : conflicts) {
+                    std::string display = group;
+                    if (group == "fps") display = "FPS";
+                    else if (group == "resolution") display = "Resolution";
+                    else if (group.rfind("graphics:", 0) == 0) display = "Graphics / " + group.substr(9);
+                    prompt += "• " + display + "\n";
+                }
+                prompt += "\nInstalled: " + installedEntry.name + "\nSelected: " + candidate.name;
+            } else {
+                prompt = "UltraFoil installs one managed selection per Build ID. The existing file will be backed up and replaced by:\n\n" + candidate.name;
+            }
+            if (mainApp->CreateShowDialog(title, prompt, {"Replace", "common.cancel"_lang}, false) != 0)
+                return;
+        }
+        if (inst::cheats::Install(target, candidate, error)) {
+            std::string message = "Cheat installed. Restart the game or reload cheats in your overlay.";
+            if (!error.empty())
+                message += "\n\nWarning: " + error;
+            mainApp->CreateShowDialog("Cheats", message, {"common.ok"_lang}, true);
+        }
         else
             mainApp->CreateShowDialog("Cheats", "Install failed:\n" + error, {"common.ok"_lang}, true);
     }

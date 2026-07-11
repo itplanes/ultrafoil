@@ -15,6 +15,8 @@ namespace inst::cheats {
         std::string name;
         std::string content;
         std::string source;
+        std::vector<std::string> tags;
+        std::vector<std::string> conflictGroups;
     };
 
     bool GetRunningTarget(Target& out, std::string& error);
@@ -22,5 +24,8 @@ namespace inst::cheats {
     bool Install(const Target& target, const Entry& entry, std::string& error);
     bool Remove(const Target& target, std::string& error);
     bool IsInstalled(const Target& target);
+    bool GetInstalledMetadata(const Target& target, Entry& out);
+    std::vector<std::string> FindConflicts(const Entry& installed, const Entry& candidate);
+    std::string FormatTags(const Entry& entry);
     std::string FormatTitleId(std::uint64_t titleId);
 }
