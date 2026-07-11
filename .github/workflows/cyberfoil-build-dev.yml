@@ -24,45 +24,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Download prebuilt lib.a from CyberFoil_Blob release
-        shell: bash
-        env:
-          BLOB_REPO_TOKEN: ${{ secrets.BLOB_REPO_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -z "${BLOB_REPO_TOKEN:-}" ]; then
-            echo "WARNING: Missing secret BLOB_REPO_TOKEN; continuing without prebuilt/lib.a"
-            exit 0
-          fi
-
-          owner="${GITHUB_REPOSITORY_OWNER}"
-          blob_repo="CyberFoil_Blob"
-          asset_name="lib.a"
-          api_release="https://api.github.com/repos/${owner}/${blob_repo}/releases/latest"
-
-          release_json="$(curl -fsSL \
-            -H "Authorization: Bearer ${BLOB_REPO_TOKEN}" \
-            -H "Accept: application/vnd.github+json" \
-            "${api_release}")"
-
-          asset_id="$(python3 -c 'import json,sys; d=json.load(sys.stdin); n="lib.a"; print(next((str(a["id"]) for a in d.get("assets",[]) if a.get("name")==n), ""))' <<< "${release_json}")"
-          if [ -z "${asset_id}" ]; then
-            echo "WARNING: Asset ${asset_name} not found in latest ${blob_repo} release; continuing without prebuilt/lib.a"
-            exit 0
-          fi
-
-          mkdir -p prebuilt
-          curl -fsSL -L \
-            -H "Authorization: Bearer ${BLOB_REPO_TOKEN}" \
-            -H "Accept: application/octet-stream" \
-            "https://api.github.com/repos/${owner}/${blob_repo}/releases/assets/${asset_id}" \
-            -o prebuilt/lib.a
-
-          if [ ! -s prebuilt/lib.a ]; then
-            echo "WARNING: Downloaded prebuilt/lib.a is missing or empty; continuing without prebuilt/lib.a"
-            rm -f prebuilt/lib.a
-          fi
-
       - name: Build
         shell: bash
         run: |

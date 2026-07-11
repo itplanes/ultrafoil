@@ -12,7 +12,6 @@
 #include <vector>
 #include <zlib.h>
 #include <zstd.h>
-#include <mbedtls/aes.h>
 #include "remoteInstall.hpp"
 #include "install/http_nsp.hpp"
 #include "install/http_xci.hpp"
@@ -35,14 +34,6 @@
 #include "util/network_util.hpp"
 #include "util/uid.hpp"
 #include "util/util.hpp"
-
-#ifndef HAVE_LIB_BLOB
-#define HAVE_LIB_BLOB 0
-#endif
-
-extern "C" {
-    bool z9f1(const void* wrappedKey, std::size_t wrappedLen, void* outAesKey16) __attribute__((weak));
-}
 
 namespace inst::ui {
     extern MainApplication *mainApp;
@@ -259,7 +250,6 @@ namespace {
     }
 
     constexpr std::size_t kLegacyHeaderSize = 0x110;
-    constexpr std::size_t kLegacyWrappedKeySize = 0x100;
     constexpr std::uint8_t kLegacyEncryptedFlag = 0xF0;
     constexpr std::uint8_t kLegacyCompressionNone = 0x00;
     constexpr std::uint8_t kLegacyCompressionZstd = 0x0D;
@@ -372,26 +362,6 @@ namespace {
         return true;
     }
 
-    bool TryUnwrapLegacyAesKey(const std::uint8_t* wrappedKey, std::vector<std::uint8_t>& outAesKey)
-    {
-        outAesKey.clear();
-        if (wrappedKey == nullptr)
-            return false;
-        if (z9f1 == nullptr)
-            return false;
-
-        std::array<std::uint8_t, 16> unwrapped{};
-        const bool ok = z9f1(wrappedKey, kLegacyWrappedKeySize, unwrapped.data());
-        if (!ok) {
-            inst::util::SecureWipe(unwrapped.data(), unwrapped.size());
-            return false;
-        }
-
-        outAesKey.assign(unwrapped.begin(), unwrapped.end());
-        inst::util::SecureWipe(unwrapped.data(), unwrapped.size());
-        return true;
-    }
-
     bool DecodeLegacyPayload(const std::string& body, std::string& outDecoded, std::string& outError)
     {
         if (body.rfind("TINFOIL", 0) != 0) {
@@ -412,39 +382,8 @@ namespace {
         std::vector<std::uint8_t> payload(body.begin() + kLegacyHeaderSize, body.end());
 
         if (encrypted) {
-#if !HAVE_LIB_BLOB
-            outError = "This build was made without prebuilt/lib.a; encrypted Remote responses are not supported.";
+            outError = "Encrypted Remote responses are not supported; use AeroFoil JSON Remote.";
             return false;
-#else
-            std::vector<std::uint8_t> aesKey;
-            if (!TryUnwrapLegacyAesKey(reinterpret_cast<const std::uint8_t*>(body.data() + 0x8), aesKey)) {
-                outError = "Encrypted Remote response could not be decrypted.";
-                return false;
-            }
-
-            mbedtls_aes_context aesCtx;
-            mbedtls_aes_init(&aesCtx);
-            if (mbedtls_aes_setkey_dec(&aesCtx, aesKey.data(), 128) != 0) {
-                mbedtls_aes_free(&aesCtx);
-                if (!aesKey.empty())
-                    inst::util::SecureWipe(aesKey.data(), aesKey.size());
-                outError = "Failed to initialize AES decryption for encrypted Remote response.";
-                return false;
-            }
-            if ((payload.size() % 16) != 0) {
-                mbedtls_aes_free(&aesCtx);
-                if (!aesKey.empty())
-                    inst::util::SecureWipe(aesKey.data(), aesKey.size());
-                outError = "Encrypted Remote payload is not AES block aligned.";
-                return false;
-            }
-            for (std::size_t off = 0; off < payload.size(); off += 16)
-                mbedtls_aes_crypt_ecb(&aesCtx, MBEDTLS_AES_DECRYPT, payload.data() + off, payload.data() + off);
-            mbedtls_aes_free(&aesCtx);
-            if (!aesKey.empty())
-                inst::util::SecureWipe(aesKey.data(), aesKey.size());
-            aesKey.clear();
-#endif
         }
 
         std::vector<std::vector<std::uint8_t>> candidates;
@@ -2517,4 +2456,3 @@ namespace remoteInstStuff {
         inst::util::deinitInstallServices();
     }
 }
-
