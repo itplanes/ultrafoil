@@ -5,7 +5,9 @@
 #include <vector>
 
 namespace inst::config {
-    static const std::string appDir = "sdmc:/switch/CyberFoil";
+    static const std::string appName = "UltraFoil";
+    static const std::string appSlug = "ultrafoil";
+    static const std::string appDir = "sdmc:/switch/UltraFoil";
     static const std::string configPath = appDir + "/config.json";
     static const std::string remotesDir = appDir + "/remotes";
     static const std::string legacyShopsDir = appDir + "/shops";
@@ -77,4 +79,3 @@ namespace inst::config {
     void setConfig();
     void parseConfig();
 }
-

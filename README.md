@@ -1,37 +1,49 @@
-# CyberFoil
-![GitHub all releases downloads](https://img.shields.io/github/downloads/luketanti/CyberFoil/total)
-![GitHub latest release downloads](https://img.shields.io/github/downloads/luketanti/CyberFoil/latest/total)
-[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/gGy7hWxJeP)
+# UltraFoil
 
+UltraFoil is a lightweight Nintendo Switch homebrew client designed to run alongside CyberFoil and connect to an AeroFoil server.
 
 ## Features
-- Simple homebrew file installer
-- Works best with AeroFoil
-- Save Data Backup manager: browse console/server saves, upload with notes, download specific own save data versions, and delete save data files from server
 
-## Save Sync (Only works with compatible AeroFoil)
-- Available when the account has backup access.
-- Shows local console saves and remote server save data backups in a dedicated `Saves` section.
-- Upload supports version notes.
-- Download/delete of remote save data backups supports per-version selection with an in-page selector layout.
+- Install content from an AeroFoil Remote.
+- Install content from a URL or a LAN sender.
+- Back up, browse, restore, and remove save-data backups through AeroFoil.
+- Find cheats for the exact running Title ID and Build ID through AeroFoil.
+- Install and remove Atmosphere cheat files with automatic local backups.
 
-## Offline Metadata/Icons
-- CyberFoil can use local title metadata and local icons from `sdmc:/switch/CyberFoil/offline_db/`.
+SD, USB, USB HDD, and MTP browsing/install entry points are intentionally not exposed by UltraFoil.
 
-## Configuration
-- `sdmc:/switch/CyberFoil/config.json` supports optional `httpUserAgentMode` and `httpUserAgent`.
-- `httpUserAgentMode` can be `default`, `chrome`, `safari`, `firefox`, `tinfoil`, or `custom`.
-- `default` uses `cyberfoil`.
-- `tinfoil` sends an empty User-Agent value.
-- Preset/custom modes are applied across network requests (downloads, Remote, and save sync).
-- `httpUserAgent` is used when `httpUserAgentMode` is `custom`.
+## Coexistence with CyberFoil
 
-## Release Package Layout
-- Build output: `cyberfoil.nro`
-- SD layout in release zip: `switch/CyberFoil/cyberfoil.nro`
+UltraFoil uses separate application files and does not reuse CyberFoil's configuration directory:
 
-## Note
-- Uses [XorTroll's Plutonium](https://github.com/XorTroll/Plutonium) for a pretty graphical interface
+- Executable: `switch/UltraFoil/ultrafoil.nro`
+- Configuration and cache: `sdmc:/switch/UltraFoil/`
+- Atmosphere cheats: `sdmc:/atmosphere/contents/<TITLE_ID>/cheats/<BUILD_ID>.txt`
+- Replaced cheat files are backed up below `sdmc:/switch/UltraFoil/cheat_backups/`.
 
+## AeroFoil setup
 
+Configure an AeroFoil Remote in Settings. Cheat lookup and save-data management use the same server URL and credentials.
 
+The AeroFoil server provides:
+
+- `GET /api/cheats/titles/<title_id>/builds/<build_id>`
+- `POST /api/cheats/render`
+
+UltraFoil only installs exact Build ID matches. Cheats published for another build are shown as unavailable and are not renamed or installed.
+
+## Build
+
+UltraFoil uses devkitPro, libnx, and Plutonium.
+
+```sh
+make -j$(nproc)
+```
+
+Build output: `ultrafoil.nro`.
+
+## License
+
+GPL-3.0. UltraFoil retains the licensing and attribution requirements of the projects it derives from.
+
+The running-game Build ID lookup is based on the GPL-3.0 AIO-Switch-Updater dmnt flow. See `aio-switch-updater` for its original authors and notices.

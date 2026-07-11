@@ -13,6 +13,7 @@ namespace inst::ui {
             void installMenuItem_Click();
             void netInstallMenuItem_Click();
             void remoteInstallMenuItem_Click();
+            void cheatsMenuItem_Click();
             void usbInstallMenuItem_Click();
             void hddInstallMenuItem_Click();
             void mtpInstallMenuItem_Click();

@@ -13,6 +13,31 @@ using json = nlohmann::json;
 namespace Language {
     json lang;
 
+    void ReplaceBrand(json& node)
+    {
+        if (node.is_string()) {
+            std::string value = node.get<std::string>();
+            constexpr const char* oldBrand = "CyberFoil";
+            constexpr const char* newBrand = "UltraFoil";
+            std::size_t pos = 0;
+            while ((pos = value.find(oldBrand, pos)) != std::string::npos) {
+                value.replace(pos, std::char_traits<char>::length(oldBrand), newBrand);
+                pos += std::char_traits<char>::length(newBrand);
+            }
+            node = std::move(value);
+            return;
+        }
+        if (node.is_array()) {
+            for (auto& child : node)
+                ReplaceBrand(child);
+            return;
+        }
+        if (node.is_object()) {
+            for (auto& item : node.items())
+                ReplaceBrand(item.value());
+        }
+    }
+
     int ResolveConfiguredLanguage()
     {
         int langInt = inst::config::languageSetting;
@@ -90,6 +115,7 @@ namespace Language {
             return;
         }
         lang = json::parse(ifs);
+        ReplaceBrand(lang);
         ifs.close();
     }
 

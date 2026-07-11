@@ -22,7 +22,6 @@ namespace inst::util {
     std::vector<uint32_t> setClockSpeed(int deviceToClock, uint32_t clockSpeed);
     std::string getIPAddress();
     bool usbIsConnected();
-    void primeNavigationClickAudio();
     void playAudio(std::string audioPath);
     void playNavigationClick();
     void playNavigationClickIfNeeded(std::uint64_t buttonsDown);

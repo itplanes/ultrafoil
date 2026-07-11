@@ -2,86 +2,14 @@
 #include "util/lang.hpp"
 #include "util/config.hpp"
 #include "util/util.hpp"
-#include <chrono>
 #include <ctime>
 #include <cstdio>
-#include <filesystem>
-#include <sstream>
-#include <thread>
-#include "mtp_install.hpp"
-#include "mtp_server.hpp"
 #include "switch.h"
 
 #define COLOR(hex) pu::ui::Color::FromHex(hex)
 
 namespace inst::ui {
     MainApplication *mainApp;
-
-    static std::string WrapForTextBlock(const pu::ui::elm::TextBlock::Ref& block, const std::string& text, int max_width) {
-        if (!block || text.empty()) return text;
-
-        std::stringstream input(text);
-        std::string paragraph;
-        std::string wrapped;
-
-        while (std::getline(input, paragraph)) {
-            if (paragraph.empty()) {
-                wrapped += "\n";
-                continue;
-            }
-
-            std::stringstream words(paragraph);
-            std::string word;
-            std::string line;
-            while (words >> word) {
-                std::string candidate = line.empty() ? word : (line + " " + word);
-                block->SetText(candidate);
-                if (block->GetTextWidth() <= max_width) {
-                    line = candidate;
-                } else {
-                    if (!wrapped.empty() && wrapped.back() != '\n') wrapped += "\n";
-                    wrapped += line.empty() ? word : line;
-                    line = line.empty() ? "" : word;
-                    if (line == word) {
-                        block->SetText(line);
-                        if (block->GetTextWidth() > max_width) {
-                            // Single overlong token: place as-is on its own line.
-                            wrapped += "\n" + line;
-                            line.clear();
-                        }
-                    }
-                }
-            }
-            if (!line.empty()) {
-                if (!wrapped.empty() && wrapped.back() != '\n') wrapped += "\n";
-                wrapped += line;
-            }
-            wrapped += "\n";
-        }
-
-        if (!wrapped.empty() && wrapped.back() == '\n') wrapped.pop_back();
-        return wrapped;
-    }
-
-    static std::string FormatOneDecimal(double value) {
-        char buf[64];
-        std::snprintf(buf, sizeof(buf), "%.1f", value);
-        std::string out = buf;
-        if (out.find('.') != std::string::npos) {
-            while (!out.empty() && out.back() == '0') out.pop_back();
-            if (!out.empty() && out.back() == '.') out.pop_back();
-        }
-        return out;
-    }
-
-    static std::string FormatBinarySize(std::uint64_t bytes) {
-        const double mib = static_cast<double>(bytes) / (1024.0 * 1024.0);
-        if (mib >= 1024.0) {
-            const double gib = mib / 1024.0;
-            return FormatOneDecimal(gib) + " GiB";
-        }
-        return FormatOneDecimal(mib) + " MiB";
-    }
 
     void MainApplication::RefreshInputDevice(bool force) {
         const AppletFocusState focus = appletGetFocusState();
@@ -106,237 +34,17 @@ namespace inst::ui {
         this->mainPage = MainPage::New();
         this->netinstPage = netInstPage::New();
         this->remoteinstPage = remoteInstPage::New();
-        this->sdinstPage = sdInstPage::New();
-        this->usbinstPage = usbInstPage::New();
-        this->hddinstPage = hddInstPage::New();
         this->instpage = instPage::New();
         this->optionspage = optionsPage::New();
         this->mainPage->SetOnInput(std::bind(&MainPage::onInput, this->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->netinstPage->SetOnInput(std::bind(&netInstPage::onInput, this->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->remoteinstPage->SetOnInput(std::bind(&remoteInstPage::onInput, this->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->sdinstPage->SetOnInput(std::bind(&sdInstPage::onInput, this->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->usbinstPage->SetOnInput(std::bind(&usbInstPage::onInput, this->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->hddinstPage->SetOnInput(std::bind(&hddInstPage::onInput, this->hddinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->instpage->SetOnInput(std::bind(&instPage::onInput, this->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->optionspage->SetOnInput(std::bind(&optionsPage::onInput, this->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->LoadLayout(this->mainPage);
 
         this->AddThread([this]() {
             this->RefreshInputDevice();
-        });
-
-        this->AddThread([this]() {
-            static bool last_active = false;
-            static bool last_server_running = false;
-            static std::string last_name;
-            static bool icon_set = false;
-            static bool complete_notified = false;
-            static auto last_time = std::chrono::steady_clock::now();
-            static std::uint64_t last_bytes = 0;
-            static double ema_rate = 0.0;
-            static int spinner_idx = 0;
-            static const char kSpinner[4] = {'|', '/', '-', '\\'};
-            static auto last_ui_text_update = std::chrono::steady_clock::now();
-
-            const bool active = inst::mtp::IsStreamInstallActive();
-            const bool server_running = inst::mtp::IsInstallServerRunning();
-            constexpr int kRightIconSize = 220;
-            constexpr int kRightIconX = 1280 - 60 - kRightIconSize;
-            constexpr int kRightIconY = 220;
-
-            if (server_running && !active && !last_server_running) {
-                this->LoadLayout(this->instpage);
-                this->instpage->pageInfoText->SetText("inst.mtp.waiting.title"_lang);
-                this->instpage->installInfoText->SetText("inst.mtp.waiting.desc"_lang + std::string("\n\n") + "inst.mtp.waiting.hint"_lang);
-                this->instpage->installInfoText->SetX(15);
-                this->instpage->installInfoText->SetY(568);
-                this->instpage->installBar->SetVisible(false);
-                this->instpage->installBar->SetProgress(0);
-                this->instpage->installIconImage->SetVisible(false);
-                this->instpage->awooImage->SetVisible(!inst::config::gayMode);
-                this->instpage->hintText->SetVisible(true);
-                this->instpage->progressText->SetVisible(false);
-                this->instpage->progressDetailText->SetVisible(false);
-                icon_set = false;
-            }
-
-            if (active && !last_active) {
-                last_name = inst::mtp::GetStreamInstallName();
-                if (last_name.empty()) {
-                    last_name = "MTP Install";
-                }
-                complete_notified = false;
-                last_time = std::chrono::steady_clock::now();
-                last_bytes = 0;
-                ema_rate = 0.0;
-                spinner_idx = 0;
-                last_ui_text_update = std::chrono::steady_clock::now() - std::chrono::milliseconds(1000);
-                this->LoadLayout(this->instpage);
-                this->instpage->pageInfoText->SetText("inst.info_page.top_info0"_lang + last_name + " (MTP)");
-                this->instpage->installInfoText->SetText("inst.info_page.preparing"_lang);
-                this->instpage->installInfoText->SetX(15);
-                this->instpage->installInfoText->SetY(568);
-                this->instpage->installBar->SetVisible(true);
-                this->instpage->installBar->SetProgress(0);
-                this->instpage->installIconImage->SetVisible(false);
-                this->instpage->awooImage->SetVisible(!inst::config::gayMode);
-                this->instpage->hintText->SetVisible(true);
-                this->instpage->progressText->SetVisible(true);
-                this->instpage->progressDetailText->SetVisible(true);
-                icon_set = false;
-            }
-
-            if (active) {
-                std::uint64_t received = 0;
-                std::uint64_t total = 0;
-                inst::mtp::GetStreamInstallProgress(&received, &total);
-                if (total > 0) {
-                    const double percent = (double)received / (double)total * 100.0;
-                    this->instpage->installBar->SetVisible(true);
-                    this->instpage->installBar->SetProgress(percent);
-                    if (!icon_set) {
-                        this->instpage->installInfoText->SetText("inst.info_page.downloading"_lang + last_name);
-                    }
-
-                    const auto now = std::chrono::steady_clock::now();
-                    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_time).count();
-                    if (elapsed >= 1000) {
-                        const auto delta = received - last_bytes;
-                        const double rate = (elapsed > 0) ? (double)delta / ((double)elapsed / 1000.0) : 0.0;
-                        if (rate > 0.0) {
-                            if (ema_rate <= 0.0) {
-                                ema_rate = rate;
-                            } else {
-                                ema_rate = (ema_rate * 0.7) + (rate * 0.3);
-                            }
-                        }
-                        last_bytes = received;
-                        last_time = now;
-                    }
-
-                    std::string eta_text = "Calculating...";
-                    if (ema_rate > 0.0 && received < total) {
-                        const auto remaining = total - received;
-                        const auto seconds = static_cast<std::uint64_t>(remaining / ema_rate);
-                        const auto h = seconds / 3600;
-                        const auto m = (seconds % 3600) / 60;
-                        const auto s = seconds % 60;
-                        if (h > 0) {
-                            eta_text = std::to_string(h) + ":" + (m < 10 ? "0" : "") + std::to_string(m) + ":" + (s < 10 ? "0" : "") + std::to_string(s);
-                        } else {
-                            eta_text = std::to_string(m) + ":" + (s < 10 ? "0" : "") + std::to_string(s);
-                        }
-                        eta_text = eta_text + " remaining";
-                    }
-
-                    std::string speed_text;
-                    if (ema_rate > 0.0) {
-                        const double mbps = ema_rate / (1024.0 * 1024.0);
-                        speed_text = FormatOneDecimal(mbps) + " MiB/s";
-                    } else {
-                        speed_text = "-- MiB/s";
-                    }
-
-                    std::string format_text;
-                    const auto dot = last_name.find_last_of('.');
-                    if (dot != std::string::npos) {
-                        format_text = last_name.substr(dot + 1);
-                        std::transform(format_text.begin(), format_text.end(), format_text.begin(), ::toupper);
-                    }
-
-                    const auto ui_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_ui_text_update).count();
-                    if (ui_elapsed >= 250 || received >= total) {
-                        const int pct = static_cast<int>(percent + 0.5);
-                        std::string progress_text = std::string(1, kSpinner[spinner_idx]) + " " + std::to_string(pct) + "% • " + eta_text + " • " + speed_text;
-                        spinner_idx = (spinner_idx + 1) % 4;
-                        if (!format_text.empty()) {
-                            progress_text += " • " + format_text;
-                        }
-                        this->instpage->progressText->SetText(progress_text);
-                        this->instpage->progressText->SetX((1280 - this->instpage->progressText->GetTextWidth()) / 2);
-                        this->instpage->progressText->SetVisible(true);
-
-                        this->instpage->progressDetailText->SetText(
-                            "Copied " + FormatBinarySize(received) + " / " + FormatBinarySize(total)
-                        );
-                        this->instpage->progressDetailText->SetX((1280 - this->instpage->progressDetailText->GetTextWidth()) / 2);
-                        this->instpage->progressDetailText->SetVisible(true);
-                        last_ui_text_update = now;
-                    }
-                }
-
-                if (!icon_set) {
-                    std::uint64_t title_id = 0;
-                    if (inst::mtp::GetStreamInstallTitleId(&title_id) && title_id != 0) {
-                        NsApplicationControlData appControlData{};
-                        size_t sizeRead = 0;
-                        Result rc = nsGetApplicationControlData(NsApplicationControlSource_Storage, title_id, &appControlData, sizeof(NsApplicationControlData), &sizeRead);
-                        if (R_SUCCEEDED(rc) && sizeRead > sizeof(appControlData.nacp)) {
-                            const size_t iconSize = sizeRead - sizeof(appControlData.nacp);
-                            if (iconSize > 0) {
-                                this->instpage->installIconImage->SetJpegImage(appControlData.icon, iconSize);
-                                this->instpage->installIconImage->SetX(kRightIconX);
-                                this->instpage->installIconImage->SetY(kRightIconY);
-                                this->instpage->installIconImage->SetWidth(kRightIconSize);
-                                this->instpage->installIconImage->SetHeight(kRightIconSize);
-                                this->instpage->installIconImage->SetVisible(true);
-                                this->instpage->awooImage->SetVisible(false);
-                                const std::string msg = last_name + "inst.info_page.desc1"_lang + "\n\n" + "inst.info_page.complete"_lang;
-                                this->instpage->installInfoText->SetText(WrapForTextBlock(this->instpage->installInfoText, msg, 900));
-                                this->instpage->installInfoText->SetX(40);
-                                this->instpage->installInfoText->SetY(240);
-                                icon_set = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (inst::mtp::ConsumeStreamInstallComplete()) {
-                this->instpage->installBar->SetVisible(true);
-                this->instpage->installBar->SetProgress(100);
-                const std::string done_msg = last_name + "inst.info_page.desc1"_lang + "\n\n" + "inst.info_page.complete"_lang + "\n\n" + "inst.mtp.waiting.hint"_lang;
-                this->instpage->installInfoText->SetText(WrapForTextBlock(this->instpage->installInfoText, done_msg, 900));
-                this->instpage->installInfoText->SetX(40);
-                this->instpage->installInfoText->SetY(240);
-                this->instpage->hintText->SetVisible(true);
-                this->instpage->progressText->SetText("100% • done");
-                this->instpage->progressText->SetX((1280 - this->instpage->progressText->GetTextWidth()) / 2);
-                this->instpage->progressText->SetVisible(true);
-                this->instpage->progressDetailText->SetText("Copied complete");
-                this->instpage->progressDetailText->SetX((1280 - this->instpage->progressDetailText->GetTextWidth()) / 2);
-                this->instpage->progressDetailText->SetVisible(true);
-
-                if (this->instpage->installIconImage->IsVisible()) {
-                    this->instpage->installIconImage->SetX(kRightIconX);
-                    this->instpage->installIconImage->SetY(kRightIconY);
-                    this->instpage->installIconImage->SetWidth(kRightIconSize);
-                    this->instpage->installIconImage->SetHeight(kRightIconSize);
-                } else if (!inst::config::gayMode) {
-                    this->instpage->awooImage->SetVisible(true);
-                    this->instpage->awooImage->SetX(kRightIconX + 10);
-                    this->instpage->awooImage->SetY(kRightIconY - 10);
-                }
-
-                if (!complete_notified) {
-                    std::string audioPath = "romfs:/audio/success.wav";
-                    if (!inst::config::soundEnabled) audioPath = "";
-                    if (std::filesystem::exists(inst::config::appDir + "/success.wav")) {
-                        audioPath = inst::config::appDir + "/success.wav";
-                    }
-                    std::thread audioThread(inst::util::playAudio, audioPath);
-                    audioThread.join();
-                    complete_notified = true;
-                }
-            }
-
-
-            if (!server_running && last_server_running) {
-                this->instpage->hintText->SetVisible(false);
-            }
-
-            last_active = active;
-            last_server_running = server_running;
         });
 
         this->AddThread([this]() {
@@ -612,9 +320,6 @@ namespace inst::ui {
             applyAll(this->mainPage);
             applyAll(this->netinstPage);
             applyAll(this->remoteinstPage);
-            applyAll(this->sdinstPage);
-            applyAll(this->usbinstPage);
-            applyAll(this->hddinstPage);
             applyAll(this->instpage);
             applyAll(this->optionspage);
         });

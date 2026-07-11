@@ -27,7 +27,7 @@ SOFTWARE.
 #include <string.h>
 
 #ifdef APP_DEBUG_LOG
-static const char* kDebugLogPath = "sdmc:/switch/CyberFoil/tinfoil_debug.log";
+static const char* kDebugLogPath = "sdmc:/switch/UltraFoil/ultrafoil_debug.log";
 #endif
 
 void debugLogReset(void)

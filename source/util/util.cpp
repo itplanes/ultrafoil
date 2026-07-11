@@ -14,9 +14,7 @@
 #include "util/config.hpp"
 #include "util/curl.hpp"
 #include "ui/MainApplication.hpp"
-#include "util/usb_comms_awoo.h"
 #include "util/json.hpp"
-#include "nx/usbhdd.h"
 
 namespace inst::util {
     namespace {
@@ -112,20 +110,27 @@ namespace inst::util {
         if (!std::filesystem::exists("sdmc:/switch")) std::filesystem::create_directory("sdmc:/switch");
         if (!std::filesystem::exists(inst::config::appDir)) std::filesystem::create_directory(inst::config::appDir);
         inst::config::parseConfig();
-        primeNavigationClickAudio();
 
         socketInitializeDefault();
         #ifdef __DEBUG__
             nxlinkStdio();
         #endif
-        awoo_usbCommsInitialize();
-        nx::hdd::init();
     }
 
     void deinitApp () {
-        nx::hdd::exit();
+        {
+            std::lock_guard<std::mutex> lock(gAudioPlaybackMutex);
+            if (gNavigationClickChunk != nullptr) {
+                Mix_FreeChunk(gNavigationClickChunk);
+                gNavigationClickChunk = nullptr;
+            }
+            if (gNavigationClickAudioOpen) {
+                Mix_CloseAudio();
+                gNavigationClickAudioOpen = false;
+            }
+            gNavigationClickLoadedPath.clear();
+        }
         socketExit();
-        awoo_usbCommsExit();
     }
 
     void initInstallServices() {
@@ -362,12 +367,6 @@ namespace inst::util {
         return state == UsbState_Configured;
     }
 
-    void primeNavigationClickAudio() {
-        std::lock_guard<std::mutex> lock(gAudioPlaybackMutex);
-        const std::string audioPath = resolveNavigationClickPath();
-        ensureNavigationClickAudioReadyLocked(audioPath);
-    }
-
     void playAudio(std::string audioPath) {
         if (audioPath.empty())
             return;
@@ -433,6 +432,10 @@ namespace inst::util {
     }
     
    std::vector<std::string> checkForAppUpdate () {
+        // UltraFoil must never consume CyberFoil release artifacts. Enable this
+        // again only after UltraFoil has its own release endpoint.
+        if (inst::config::appName == "UltraFoil")
+            return {};
         try {
             std::string jsonData = inst::curl::downloadToBuffer("https://api.github.com/repos/luketanti/CyberFoil/releases/latest", 0, 0, 1000L);
             if (jsonData.size() == 0) return {};

@@ -10,6 +10,7 @@
 #include "util/config.hpp"
 #include "util/offline_db_update.hpp"
 #include "util/save_sync.hpp"
+#include "util/cheat_service.hpp"
 #include "util/error.hpp"
 #include "util/lang.hpp"
 #include "data/buffered_placeholder_writer.hpp"
@@ -25,7 +26,7 @@ namespace inst::ui {
     bool updateFinished = false;
     bool offlineDbUpdateCheckFinished = false;
     constexpr int kMainGridCols = 3;
-    constexpr int kMainGridRows = 3;
+    constexpr int kMainGridRows = 2;
     constexpr int kMainGridTileWidth = 360;
     constexpr int kMainGridTileHeight = 170;
     constexpr int kMainGridGapX = 20;
@@ -353,22 +354,16 @@ namespace inst::ui {
         const auto highlightColor = inst::config::oledMode ? COLOR("#FF4D4D66") : COLOR("#FF4D4D88");
         const std::vector<std::string> gridLabels = {
             "main.menu.remote"_lang,
-            "main.menu.sd"_lang,
-            "main.menu.hdd"_lang,
-            "main.menu.mtp"_lang,
-            "main.menu.usb"_lang,
             "main.menu.net"_lang,
+            "Cheats",
             "main.menu.backup"_lang,
             "main.menu.set"_lang,
             "main.menu.exit"_lang
         };
         const std::vector<std::string> gridIcons = {
             "romfs:/images/icons/remote.png",
-            "romfs:/images/icons/micro-sd.png",
-            "romfs:/images/icons/usb-install.png",
-            "romfs:/images/icons/usb-port.png",
-            "romfs:/images/icons/usb-port.png",
             "romfs:/images/icons/cloud-download.png",
+            "romfs:/images/icons/settings.png",
             "romfs:/images/icons/save-data-cloud.png",
             "romfs:/images/icons/settings.png",
             "romfs:/images/icons/exit-run.png"
@@ -459,6 +454,74 @@ namespace inst::ui {
             return;
         }
         mainApp->remoteinstPage->startRemote();
+    }
+
+    void MainPage::cheatsMenuItem_Click() {
+        if (inst::util::getIPAddress() == "1.0.0.127") {
+            mainApp->CreateShowDialog("Cheats", "Connect to a network before searching for cheats.", {"common.ok"_lang}, true);
+            return;
+        }
+
+        inst::cheats::Target target;
+        std::string error;
+        if (!inst::cheats::GetRunningTarget(target, error)) {
+            mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
+            return;
+        }
+
+        std::vector<inst::cheats::Entry> entries;
+        std::vector<std::string> availableBuildIds;
+        if (!inst::cheats::FetchExact(target, entries, availableBuildIds, error)) {
+            mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
+            return;
+        }
+
+        const std::string identity =
+            "Title ID: " + inst::cheats::FormatTitleId(target.titleId) +
+            "\nBuild ID: " + target.buildId;
+        if (entries.empty()) {
+            std::string message = identity + "\n\nNo exact Build ID match was found.";
+            if (!availableBuildIds.empty())
+                message += "\nOther builds are available, but UltraFoil will not install mismatched cheats.";
+            mainApp->CreateShowDialog("Cheats", message, {"common.ok"_lang}, true);
+            return;
+        }
+
+        const bool installed = inst::cheats::IsInstalled(target);
+        std::vector<std::string> choices;
+        if (installed)
+            choices.push_back("Remove installed cheat file");
+        const std::size_t shown = std::min<std::size_t>(entries.size(), 20);
+        for (std::size_t i = 0; i < shown; i++) {
+            std::string label = entries[i].name;
+            if (!entries[i].source.empty())
+                label += " [" + entries[i].source + "]";
+            choices.push_back(inst::util::shortenString(label, 80, false));
+        }
+        choices.push_back("common.cancel"_lang);
+
+        const int selected = mainApp->CreateShowDialog(
+            "Cheats",
+            identity + "\n\nSelect a cheat to install. Installing replaces the current Build ID file after backing it up.",
+            choices,
+            false);
+        if (selected < 0 || selected == static_cast<int>(choices.size() - 1))
+            return;
+        if (installed && selected == 0) {
+            if (inst::cheats::Remove(target, error))
+                mainApp->CreateShowDialog("Cheats", "Installed cheat file removed.", {"common.ok"_lang}, true);
+            else
+                mainApp->CreateShowDialog("Cheats", "Remove failed:\n" + error, {"common.ok"_lang}, true);
+            return;
+        }
+
+        const std::size_t entryIndex = static_cast<std::size_t>(selected - (installed ? 1 : 0));
+        if (entryIndex >= shown)
+            return;
+        if (inst::cheats::Install(target, entries[entryIndex], error))
+            mainApp->CreateShowDialog("Cheats", "Cheat installed. Restart the game or reload cheats in your overlay.", {"common.ok"_lang}, true);
+        else
+            mainApp->CreateShowDialog("Cheats", "Install failed:\n" + error, {"common.ok"_lang}, true);
     }
 
     void MainPage::usbInstallMenuItem_Click() {
@@ -787,27 +850,18 @@ namespace inst::ui {
                 this->remoteInstallMenuItem_Click();
                 break;
             case 1:
-                this->installMenuItem_Click();
-                break;
-            case 2:
-                this->hddInstallMenuItem_Click();
-                break;
-            case 3:
-                this->mtpInstallMenuItem_Click();
-                break;
-            case 4:
-                this->usbInstallMenuItem_Click();
-                break;
-            case 5:
                 this->netInstallMenuItem_Click();
                 break;
-            case 6:
+            case 2:
+                this->cheatsMenuItem_Click();
+                break;
+            case 3:
                 this->backupSaveDataMenuItem_Click();
                 break;
-            case 7:
+            case 4:
                 this->settingsMenuItem_Click();
                 break;
-            case 8:
+            case 5:
                 this->exitMenuItem_Click();
                 break;
             default:
@@ -824,34 +878,22 @@ namespace inst::ui {
                 desc = "main.info.remote"_lang;
                 break;
             case 1:
-                title = "main.menu.sd"_lang;
-                desc = "main.info.sd"_lang;
-                break;
-            case 2:
-                title = "main.menu.hdd"_lang;
-                desc = "main.info.hdd"_lang;
-                break;
-            case 3:
-                title = "main.menu.mtp"_lang;
-                desc = "main.info.mtp"_lang;
-                break;
-            case 4:
-                title = "main.menu.usb"_lang;
-                desc = "main.info.usb"_lang;
-                break;
-            case 5:
                 title = "main.menu.net"_lang;
                 desc = "main.info.net"_lang;
                 break;
-            case 6:
+            case 2:
+                title = "Cheats";
+                desc = "Search, install, inspect and remove cheats matched by Title ID and Build ID.";
+                break;
+            case 3:
                 title = "main.menu.backup"_lang;
                 desc = "main.info.backup"_lang;
                 break;
-            case 7:
+            case 4:
                 title = "main.menu.set"_lang;
                 desc = "main.info.set"_lang;
                 break;
-            case 8:
+            case 5:
                 title = "main.menu.exit"_lang;
                 desc = "main.info.exit"_lang;
                 break;
@@ -937,5 +979,3 @@ namespace inst::ui {
             this->activateSelectedMainItem();
     }
 }
-
-

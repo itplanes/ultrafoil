@@ -42,7 +42,7 @@ PLUTONIUM_INCLUDE_SOURCE := include/Plutonium/Plutonium/Include
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-TARGET		:=	cyberfoil
+TARGET		:=	ultrafoil
 BUILD		:=	build
 SOURCES		:=	source source/ui source/data source/install source/nx source/nx/ipc source/util external/libhaze/source \
 			include/libusbhsfs/source include/libusbhsfs/source/fatfs include/libusbhsfs/source/ntfs-3g \
@@ -51,7 +51,7 @@ DATA		:=	data
 INCLUDES	:=	include include/ui include/data include/install include/nx include/nx/ipc include/util \
 				include/libusbhsfs/include include/libusbhsfs/source \
 				$(PLUTONIUM_INCLUDE_SWITCH) $(PLUTONIUM_INCLUDE_OUTPUT) $(PLUTONIUM_INCLUDE_SOURCE) external/libhaze/include
-APP_TITLE	:=	CyberFoil
+APP_TITLE	:=	UltraFoil
 APP_AUTHOR	:=	luketanti
 APP_VERSION	:=	1.4.5
 GIT_COMMIT	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git rev-parse --short=8 HEAD 2>/dev/null; elif [ -n "$$GITHUB_SHA" ]; then printf "%s" "$$GITHUB_SHA" | cut -c1-8; else echo nogit; fi)

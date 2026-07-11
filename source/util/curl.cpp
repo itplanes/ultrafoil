@@ -8,6 +8,7 @@
 #include <fstream>
 #include <mutex>
 #include <system_error>
+#include <utility>
 #include <vector>
 #include "util/curl.hpp"
 #include "util/config.hpp"
@@ -44,7 +45,7 @@ static bool isLikelyImageFile(const char *path) {
 
 namespace inst::curl {
     const std::string& getDefaultUserAgent() {
-        static const std::string kDefaultUserAgent = "cyberfoil";
+        static const std::string kDefaultUserAgent = "ultrafoil";
         return kDefaultUserAgent;
     }
 
@@ -139,6 +140,24 @@ size_t writeDataBuffer(char *ptr, size_t size, size_t nmemb, void *userdata) {
     std::ostringstream *stream = (std::ostringstream*)userdata;
     size_t count = size * nmemb;
     stream->write(ptr, count);
+    return count;
+}
+
+struct LimitedBufferContext {
+    std::string data;
+    std::size_t limit = 0;
+    bool exceeded = false;
+};
+
+static size_t writeLimitedDataBuffer(char* ptr, size_t size, size_t nmemb, void* userdata) {
+    auto* context = static_cast<LimitedBufferContext*>(userdata);
+    const size_t count = size * nmemb;
+    if (context == nullptr || count > context->limit || context->data.size() > context->limit - count) {
+        if (context != nullptr)
+            context->exceeded = true;
+        return 0;
+    }
+    context->data.append(ptr, count);
     return count;
 }
 
@@ -639,5 +658,52 @@ namespace inst::curl {
         LOG_DEBUG("downloadToBuffer failed rc=%s http=%ld url=%s\n", curl_easy_strerror(result), responseCode, ourUrl.c_str());
         return "";
     }
-}
 
+    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout) {
+        if (!ensureCurlGlobalInit()) {
+            LOG_DEBUG("curl global init failed\n");
+            return "";
+        }
+
+        CURL* curl_handle = curl_easy_init();
+        if (curl_handle == nullptr)
+            return "";
+
+        LimitedBufferContext responseBody;
+        responseBody.limit = 8U * 1024U * 1024U;
+        applyCommonCurlOptions(curl_handle, ourUrl, timeout, false);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeLimitedDataBuffer);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &responseBody);
+        curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
+
+        struct curl_slist* headerList = nullptr;
+        const auto headers = buildRemoteHeaders(ourUrl, user, pass);
+        for (const auto& header : headers)
+            headerList = curl_slist_append(headerList, header.c_str());
+        if (headerList)
+            curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, headerList);
+
+        std::string authValue;
+        if (!user.empty() || !pass.empty()) {
+            authValue = user + ":" + pass;
+            curl_easy_setopt(curl_handle, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+            curl_easy_setopt(curl_handle, CURLOPT_USERPWD, authValue.c_str());
+        }
+
+        const CURLcode result = curl_easy_perform(curl_handle);
+        long responseCode = 0;
+        curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &responseCode);
+        if (headerList)
+            curl_slist_free_all(headerList);
+        curl_easy_cleanup(curl_handle);
+
+        if (result == CURLE_OK && responseCode >= 200 && responseCode < 300 && !responseBody.exceeded)
+            return std::move(responseBody.data);
+
+        if (responseBody.exceeded)
+            LOG_DEBUG("downloadToBufferWithAuth response too large url=%s\n", ourUrl.c_str());
+
+        LOG_DEBUG("downloadToBufferWithAuth failed rc=%s http=%ld url=%s\n", curl_easy_strerror(result), responseCode, ourUrl.c_str());
+        return "";
+    }
+}

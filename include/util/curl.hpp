@@ -15,4 +15,5 @@ namespace inst::curl {
     bool downloadFileWithAuth(const std::string ourUrl, const char *pagefilename, const std::string& user, const std::string& pass, long timeout = 5000);
     bool downloadImageWithAuth(const std::string ourUrl, const char *pagefilename, const std::string& user, const std::string& pass, long timeout = 5000);
     std::string downloadToBuffer (const std::string ourUrl, int firstRange = -1, int secondRange = -1, long timeout = 5000);
+    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout = 5000);
 }

@@ -197,7 +197,7 @@ namespace inst::ui {
                 return "Firefox (Windows)";
             if (normalized == "custom")
                 return "Custom";
-            return "Default (CyberFoil)";
+            return "Default (UltraFoil)";
         }
 
         int GetUserAgentProfileChoiceIndex(const std::string& mode)
@@ -998,7 +998,7 @@ namespace inst::ui {
                     }
 
                     const std::vector<std::string> profiles = {
-                        "Default (CyberFoil)",
+                        "Default (UltraFoil)",
                         "Tinfoil",
                         "Chrome (Windows)",
                         "Safari (iPhone)",
@@ -1011,7 +1011,7 @@ namespace inst::ui {
                     const std::string currentLabel = profiles[currentIndex];
                     int profileChoice = inst::ui::mainApp->CreateShowDialog(
                         "User-Agent profile",
-                        "Used for file/media downloads. Remote API always uses CyberFoil.",
+                        "Used for file/media downloads. Remote API always uses UltraFoil.",
                         profiles,
                         false
                     );
