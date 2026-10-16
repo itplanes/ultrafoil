@@ -1,0 +1,19 @@
+source/ui/cheatsPage.cpp
+  s_5e6d4c9816cdc5::t_dbf3f91dca763a 179-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c56e4e25748af3b1ef7024621723ae9403e99aec",
+  "prompts": {},
+  "sessions": {
+    "s_5e6d4c9816cdc5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a144e1-6285-73e0-b624-738d5450108e",
+        "model": "unknown"
+      },
+      "human_author": "Cian <cian@macbook.local>"
+    }
+  }
+}
