@@ -1,0 +1,25 @@
+README.md
+  s_a966402e60fc9c::t_90b814553da8ae 41-42
+include/util/cheat_service.hpp
+  s_a966402e60fc9c::t_5c24787f114bf2 41
+source/ui/cheatsPage.cpp
+  s_a966402e60fc9c::t_da09b3131c9b7c 154-157,185-189,210
+source/util/cheat_service.cpp
+  s_a966402e60fc9c::t_95c372564fbca4 247
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "53d1e343a103bd0be1adbaf9290f5e0a51132c00",
+  "prompts": {},
+  "sessions": {
+    "s_a966402e60fc9c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4c6c-88ad-7411-bf2b-8e9feef7f083",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Cian <cian@macbook.local>"
+    }
+  }
+}
