@@ -1,0 +1,37 @@
+include/util/http_range.hpp
+  s_a966402e60fc9c::t_35da903fc21436 1-25
+source/util/install_diagnostics.cpp
+  s_a966402e60fc9c::t_ede90c5df5124c 14,20-36,80-84,109,135,224
+source/util/network_util.cpp
+  s_a966402e60fc9c::t_52717b59a0a096 24-25,178-180,183-199,210-211,213-216,224,233-234,251-256,263-264,298-300,309,541-542,547
+tests/test_http_range.cpp
+  s_a966402e60fc9c::t_25929d277fec49 1-13
+include/ui/MainApplication.hpp
+  s_a966402e60fc9c::t_7ca06ec643b6bb 12,33
+include/util/curl.hpp
+  s_a966402e60fc9c::t_16d97bfc6b94b0 5,19
+include/util/file_transaction.hpp
+  s_a966402e60fc9c::t_78c6faf0c5b644 1-75
+source/ui/MainApplication.cpp
+  s_a966402e60fc9c::t_f8fa17f43b56de 39,49
+source/util/curl.cpp
+  s_a966402e60fc9c::t_49da2440b784e4 662-663,679-686,712-715
+tests/test_file_transaction.cpp
+  s_a966402e60fc9c::t_5a2fa0cbf935e2 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "8a3c88dc6e6b047a4507f9c67552a31b8234cad3",
+  "prompts": {},
+  "sessions": {
+    "s_a966402e60fc9c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4c6c-88ad-7411-bf2b-8e9feef7f083",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Cian <cian@macbook.local>"
+    }
+  }
+}
