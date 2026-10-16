@@ -439,6 +439,14 @@ namespace inst::ui {
             const std::string downloadUrl = updateInfo.size() > 1 ? updateInfo[1] : std::string();
             const std::string releaseNotes = updateInfo.size() > 2 ? updateInfo[2] : "No changelog available for this release.";
 
+            if (inst::config::appName == "UltraFoil") {
+                while (mainApp->CreateShowDialog("UltraFoil update available", "Version " + version +
+                    "\nDownload the UltraFoil release from:\nhttps://github.com/itplanes/ultrafoil/releases\n\nThis reminder does not replace the running NRO.",
+                    {"View changelog", "Later"}, false) == 0)
+                    ShowPagedTextDialog("UltraFoil " + version, releaseNotes);
+                return;
+            }
+
             while (true) {
                 int choice = mainApp->CreateShowDialog(
                     "options.update.title"_lang,
@@ -833,10 +841,6 @@ namespace inst::ui {
                         mainApp->remoteinstPage->appVersionText->SetX(480);
                         mainApp->optionspage->titleImage->SetX(0);
                         mainApp->optionspage->appVersionText->SetX(480);
-                        mainApp->sdinstPage->titleImage->SetX(0);
-                        mainApp->sdinstPage->appVersionText->SetX(480);
-                        mainApp->usbinstPage->titleImage->SetX(0);
-                        mainApp->usbinstPage->appVersionText->SetX(480);
                     }
                     else {
                         inst::config::gayMode = true;
@@ -852,10 +856,6 @@ namespace inst::ui {
                         mainApp->remoteinstPage->appVersionText->SetX(367);
                         mainApp->optionspage->titleImage->SetX(-113);
                         mainApp->optionspage->appVersionText->SetX(367);
-                        mainApp->sdinstPage->titleImage->SetX(-113);
-                        mainApp->sdinstPage->appVersionText->SetX(367);
-                        mainApp->usbinstPage->titleImage->SetX(-113);
-                        mainApp->usbinstPage->appVersionText->SetX(367);
                     }
                     inst::config::setConfig();
                     this->refreshOptions();
@@ -872,16 +872,13 @@ namespace inst::ui {
                         auto keepAlive = mainApp->optionspage;
                         mainApp->mainPage = MainPage::New();
                         mainApp->instpage = instPage::New();
-                        mainApp->sdinstPage = sdInstPage::New();
                         mainApp->netinstPage = netInstPage::New();
-                        mainApp->usbinstPage = usbInstPage::New();
                         mainApp->remoteinstPage = remoteInstPage::New();
                         mainApp->optionspage = optionsPage::New();
+                        mainApp->cheatsPage = CheatsPage::New();
                         mainApp->mainPage->SetOnInput(std::bind(&MainPage::onInput, mainApp->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->netinstPage->SetOnInput(std::bind(&netInstPage::onInput, mainApp->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->remoteinstPage->SetOnInput(std::bind(&remoteInstPage::onInput, mainApp->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->sdinstPage->SetOnInput(std::bind(&sdInstPage::onInput, mainApp->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->usbinstPage->SetOnInput(std::bind(&usbInstPage::onInput, mainApp->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->instpage->SetOnInput(std::bind(&instPage::onInput, mainApp->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->optionspage->SetOnInput(std::bind(&optionsPage::onInput, mainApp->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->LoadLayout(mainApp->optionspage);

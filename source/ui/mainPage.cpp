@@ -213,9 +213,12 @@ namespace inst::ui {
             tin::data::NUM_BUFFER_SEGMENTS = 128;
         }
         if (!updateFinished && (!inst::config::autoUpdate || inst::util::getIPAddress() == "1.0.0.127")) updateFinished = true;
-        if (!updateFinished && menuLoaded && inst::config::updateInfo.size()) {
-            updateFinished = true;
-            optionsPage::askToUpdate(inst::config::updateInfo);
+        if (!updateFinished && menuLoaded) {
+            const auto update = inst::util::GetAppUpdateInfo();
+            if (!update.empty()) {
+                updateFinished = true;
+                optionsPage::askToUpdate(update);
+            }
         }
         if (!offlineDbUpdateCheckFinished && (!inst::config::offlineDbAutoCheckOnStartup || inst::util::getIPAddress() == "1.0.0.127"))
             offlineDbUpdateCheckFinished = true;
@@ -457,189 +460,7 @@ namespace inst::ui {
     }
 
     void MainPage::cheatsMenuItem_Click() {
-        if (inst::util::getIPAddress() == "1.0.0.127") {
-            mainApp->CreateShowDialog("Cheats", "Connect to a network before searching for cheats.", {"common.ok"_lang}, true);
-            return;
-        }
-
-        inst::cheats::Target target;
-        std::string error;
-        if (!inst::cheats::GetRunningTarget(target, error)) {
-            std::vector<inst::cheats::InstalledTitle> titles;
-            if (!inst::cheats::ListInstalledTitles(titles, error) || titles.empty()) {
-                mainApp->CreateShowDialog("Cheats", error.empty() ? "No installed games were found." : error, {"common.ok"_lang}, true);
-                return;
-            }
-            std::size_t selectedTitleIndex = 0;
-            while (true) {
-                const auto& preview = titles[selectedTitleIndex];
-                const std::string message =
-                    inst::util::shortenString(preview.name, 64, false) +
-                    "\nTitle ID: " + inst::cheats::FormatTitleId(preview.titleId) +
-                    "\n\nGame " + std::to_string(selectedTitleIndex + 1) + " / " + std::to_string(titles.size());
-                const int selected = mainApp->CreateShowDialog(
-                    "Offline cheat management",
-                    message,
-                    {"Select", "Previous", "Next", "common.cancel"_lang},
-                    false);
-                if (selected < 0 || selected == 3)
-                    return;
-                if (selected == 0)
-                    break;
-                if (selected == 1)
-                    selectedTitleIndex = selectedTitleIndex == 0 ? titles.size() - 1 : selectedTitleIndex - 1;
-                else if (selected == 2)
-                    selectedTitleIndex = (selectedTitleIndex + 1) % titles.size();
-            }
-
-            const auto& selectedTitle = titles[selectedTitleIndex];
-            std::vector<inst::cheats::BuildBundle> builds;
-            if (!inst::cheats::FetchAllBuilds(selectedTitle.titleId, builds, error)) {
-                mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
-                return;
-            }
-            if (builds.empty()) {
-                mainApp->CreateShowDialog("Cheats", "No cheat bundles are available for this game.", {"common.ok"_lang}, true);
-                return;
-            }
-            std::vector<inst::cheats::BuildBundle> compatibleBuilds;
-            if (selectedTitle.version > 0) {
-                for (const auto& build : builds)
-                    if (build.version == selectedTitle.version) compatibleBuilds.push_back(build);
-            }
-            if (compatibleBuilds.empty()) {
-                std::string available;
-                for (const auto& build : builds) {
-                    if (build.versionLabel.empty()) continue;
-                    if (!available.empty()) available += ", ";
-                    available += build.versionLabel;
-                    if (available.size() > 120) { available += "..."; break; }
-                }
-                std::string mismatch = selectedTitle.name + "\nInstalled internal version: " + std::to_string(selectedTitle.version) +
-                    "\n\nNo cheat Build ID is confirmed for the installed version.";
-                if (!available.empty()) mismatch += "\nAdapted versions: " + available;
-                mismatch += "\n\nNothing was installed. Start the game for an exact Build ID check.";
-                mainApp->CreateShowDialog("No compatible cheat version", mismatch, {"common.ok"_lang}, true);
-                return;
-            }
-            std::size_t totalEntries = 0;
-            std::size_t conflictBuilds = 0;
-            bool anyInstalled = false;
-            for (const auto& build : compatibleBuilds) {
-                totalEntries += build.entryCount;
-                if (!build.conflictGroups.empty()) conflictBuilds++;
-                if (inst::cheats::IsInstalled({selectedTitle.titleId, build.buildId})) anyInstalled = true;
-            }
-            std::string versionLabel = compatibleBuilds.front().versionLabel.empty()
-                ? std::to_string(selectedTitle.version) : compatibleBuilds.front().versionLabel;
-            std::string summary = selectedTitle.name + "\nTitle ID: " + inst::cheats::FormatTitleId(selectedTitle.titleId) +
-                "\nInstalled/adapted version: " + versionLabel +
-                "\nBuild ID: " + compatibleBuilds.front().buildId +
-                "\nSwitchable entries: " + std::to_string(totalEntries);
-            if (!compatibleBuilds.front().attributions.empty())
-                summary += "\nAdapter/source: " + inst::util::shortenString(compatibleBuilds.front().attributions.front(), 70, false);
-            if (conflictBuilds)
-                summary += "\nConflict warning: " + std::to_string(conflictBuilds) + " build bundle(s) contain mutually exclusive choices. Do not enable conflicting FPS/resolution/graphics entries together.";
-            summary += "\n\nUse a dmnt-compatible overlay such as EdiZon/Breeze to toggle entries. For safety, set dmnt_cheats_enabled_by_default = u8!0x0 in Atmosphere system_settings.ini.";
-            std::vector<std::string> actions = {anyInstalled ? "Update compatible cheats" : "Install compatible cheats"};
-            if (anyInstalled) actions.push_back("Remove compatible cheats");
-            actions.push_back("common.cancel"_lang);
-            const int action = mainApp->CreateShowDialog("Manage cheat bundles", summary, actions, false);
-            if (action < 0 || action == static_cast<int>(actions.size() - 1)) return;
-            std::size_t changed = 0;
-            bool ok = false;
-            if (anyInstalled && action == 1)
-                ok = inst::cheats::RemoveAllBuilds(selectedTitle.titleId, compatibleBuilds, changed, error);
-            else
-                ok = inst::cheats::InstallAllBuilds(selectedTitle.titleId, compatibleBuilds, changed, error);
-            if (ok)
-                mainApp->CreateShowDialog("Cheats", std::to_string(changed) + (anyInstalled && action == 1 ? " managed files removed." : " Build ID bundles installed."), {"common.ok"_lang}, true);
-            else
-                mainApp->CreateShowDialog("Cheats", "Operation stopped after " + std::to_string(changed) + " file(s):\n" + error, {"common.ok"_lang}, true);
-            return;
-        }
-
-        std::vector<inst::cheats::Entry> entries;
-        std::vector<std::string> availableBuildIds;
-        if (!inst::cheats::FetchExact(target, entries, availableBuildIds, error)) {
-            mainApp->CreateShowDialog("Cheats", error, {"common.ok"_lang}, true);
-            return;
-        }
-
-        const std::string identity =
-            "Title ID: " + inst::cheats::FormatTitleId(target.titleId) +
-            "\nBuild ID: " + target.buildId;
-        if (entries.empty()) {
-            std::string message = identity + "\n\nNo exact Build ID match was found.";
-            if (!availableBuildIds.empty())
-                message += "\nOther builds are available, but UltraFoil will not install mismatched cheats.";
-            mainApp->CreateShowDialog("Cheats", message, {"common.ok"_lang}, true);
-            return;
-        }
-
-        const bool installed = inst::cheats::IsInstalled(target);
-        std::vector<std::string> choices;
-        if (installed)
-            choices.push_back("Remove installed cheat file");
-        const std::size_t shown = std::min<std::size_t>(entries.size(), 20);
-        for (std::size_t i = 0; i < shown; i++) {
-            std::string label = inst::cheats::FormatTags(entries[i]) + " " + entries[i].name;
-            if (!entries[i].source.empty())
-                label += " [" + entries[i].source + "]";
-            choices.push_back(inst::util::shortenString(label, 80, false));
-        }
-        choices.push_back("common.cancel"_lang);
-
-        const int selected = mainApp->CreateShowDialog(
-            "Cheats",
-            identity + "\n\nSelect a cheat to install. Installing replaces the current Build ID file after backing it up.",
-            choices,
-            false);
-        if (selected < 0 || selected == static_cast<int>(choices.size() - 1))
-            return;
-        if (installed && selected == 0) {
-            if (inst::cheats::Remove(target, error))
-                mainApp->CreateShowDialog("Cheats", "Installed cheat file removed.", {"common.ok"_lang}, true);
-            else
-                mainApp->CreateShowDialog("Cheats", "Remove failed:\n" + error, {"common.ok"_lang}, true);
-            return;
-        }
-
-        const std::size_t entryIndex = static_cast<std::size_t>(selected - (installed ? 1 : 0));
-        if (entryIndex >= shown)
-            return;
-        const auto& candidate = entries[entryIndex];
-        if (installed) {
-            inst::cheats::Entry installedEntry;
-            const bool hasMetadata = inst::cheats::GetInstalledMetadata(target, installedEntry);
-            const auto conflicts = hasMetadata ? inst::cheats::FindConflicts(installedEntry, candidate) : std::vector<std::string>{};
-            std::string prompt;
-            std::string title = "Replace installed cheat?";
-            if (!conflicts.empty()) {
-                title = "Mutually exclusive cheat";
-                prompt = "The installed and selected cheats modify the same setting:\n";
-                for (const auto& group : conflicts) {
-                    std::string display = group;
-                    if (group == "fps") display = "FPS";
-                    else if (group == "resolution") display = "Resolution";
-                    else if (group.rfind("graphics:", 0) == 0) display = "Graphics / " + group.substr(9);
-                    prompt += "• " + display + "\n";
-                }
-                prompt += "\nInstalled: " + installedEntry.name + "\nSelected: " + candidate.name;
-            } else {
-                prompt = "UltraFoil installs one managed selection per Build ID. The existing file will be backed up and replaced by:\n\n" + candidate.name;
-            }
-            if (mainApp->CreateShowDialog(title, prompt, {"Replace", "common.cancel"_lang}, false) != 0)
-                return;
-        }
-        if (inst::cheats::Install(target, candidate, error)) {
-            std::string message = "Cheat installed. Restart the game or reload cheats in your overlay.";
-            if (!error.empty())
-                message += "\n\nWarning: " + error;
-            mainApp->CreateShowDialog("Cheats", message, {"common.ok"_lang}, true);
-        }
-        else
-            mainApp->CreateShowDialog("Cheats", "Install failed:\n" + error, {"common.ok"_lang}, true);
+        mainApp->cheatsPage->Open();
     }
 
     void MainPage::usbInstallMenuItem_Click() {

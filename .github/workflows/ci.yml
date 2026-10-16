@@ -1,0 +1,17 @@
+name: UltraFoil regression checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  file-and-range-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify rollback and resumed ranges
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror -Iinclude tests/test_file_transaction.cpp -o /tmp/file-transaction-test
+          /tmp/file-transaction-test
+          g++ -std=c++20 -Wall -Wextra -Werror -Iinclude tests/test_http_range.cpp -o /tmp/http-range-test
+          /tmp/http-range-test

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -13,6 +14,7 @@
 #include "util/curl.hpp"
 #include "util/json.hpp"
 #include "util/title_util.hpp"
+#include "util/file_transaction.hpp"
 
 namespace inst::cheats {
     namespace {
@@ -70,29 +72,43 @@ namespace inst::cheats {
             }
         }
 
-        bool WriteMetadata(const Target& target, const Entry& entry)
+        std::string ReadFile(const std::string& path)
         {
-            const std::string path = MetadataPath(target);
-            const std::string tempPath = path + ".tmp";
-            std::filesystem::create_directories(std::filesystem::path(path).parent_path());
-            nlohmann::json json = {
-                {"id", entry.id},
-                {"name", entry.name},
-                {"source", entry.source},
-                {"tags", entry.tags},
-                {"conflict_groups", entry.conflictGroups}
-            };
-            std::ofstream output(tempPath, std::ios::binary | std::ios::trunc);
-            if (!output)
-                return false;
-            output << json.dump(2) << '\n';
-            output.close();
-            if (!output)
-                return false;
-            if (std::filesystem::exists(path))
-                std::filesystem::remove(path);
-            std::filesystem::rename(tempPath, path);
-            return true;
+            if (std::filesystem::file_size(path) > kMaxCheatFileSize)
+                throw std::runtime_error("File exceeds the safe read limit.");
+            std::ifstream input(path, std::ios::binary);
+            if (!input) throw std::runtime_error("Unable to read " + path);
+            return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+        }
+
+        std::string ContentHash(const std::string& content)
+        {
+            std::uint8_t hash[32]{};
+            sha256CalculateHash(hash, content.data(), content.size());
+            std::ostringstream result;
+            for (auto value : hash) result << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(value);
+            return result.str();
+        }
+
+        nlohmann::json ReadState(const Target& target)
+        {
+            if (!std::filesystem::exists(MetadataPath(target))) return nlohmann::json::object();
+            try { return nlohmann::json::parse(ReadFile(MetadataPath(target))); }
+            catch (...) { return nlohmann::json::object(); }
+        }
+
+        void RecordAction(const Target& target, const std::string& action)
+        {
+            try {
+                const auto path = inst::config::appDir + "/cheat_history.jsonl";
+                if (std::filesystem::exists(path) && std::filesystem::file_size(path) > 1024U * 1024U) {
+                    std::filesystem::remove(path + ".old");
+                    std::filesystem::rename(path, path + ".old");
+                }
+                std::ofstream output(path, std::ios::app);
+                output << nlohmann::json({{"title_id", FormatTitleId(target.titleId)}, {"build_id", target.buildId},
+                    {"action", action}, {"timestamp", std::time(nullptr)}}).dump() << '\n';
+            } catch (...) { /* The installation result does not depend on the history log. */ }
         }
 
         std::string ApiBase()
@@ -148,7 +164,7 @@ namespace inst::cheats {
         return true;
     }
 
-    bool FetchExact(const Target& target, std::vector<Entry>& out, std::vector<std::string>& availableBuildIds, std::string& error)
+    bool FetchExact(const Target& target, std::vector<Entry>& out, std::vector<std::string>& availableBuildIds, std::string& error, const std::atomic_bool* cancel)
     {
         out.clear();
         availableBuildIds.clear();
@@ -164,9 +180,9 @@ namespace inst::cheats {
         }
 
         const std::string url = base + "/api/cheats/titles/" + FormatTitleId(target.titleId) + "/builds/" + target.buildId;
-        const std::string body = inst::curl::downloadToBufferWithAuth(url, inst::config::remoteUser, inst::config::remotePass, 20000L);
+        const std::string body = inst::curl::downloadToBufferWithAuth(url, inst::config::remoteUser, inst::config::remotePass, 20000L, cancel, &error);
         if (body.empty()) {
-            error = "AeroFoil did not return cheat data.";
+            if (error.empty()) error = "AeroFoil did not return cheat data.";
             return false;
         }
 
@@ -194,6 +210,7 @@ namespace inst::cheats {
                 entry.name = item.value("name", "Unnamed cheat");
                 entry.content = item.value("content", "");
                 entry.source = item.value("source", "unknown");
+                entry.role = item.value("role", "normal");
                 ReadStringArray(item, "tags", entry.tags);
                 ReadStringArray(item, "conflict_groups", entry.conflictGroups);
                 if (entry.id.size() != 64 || entry.content.empty() || entry.content.size() > kMaxCheatFileSize)
@@ -205,6 +222,63 @@ namespace inst::cheats {
             error = std::string("Invalid cheat response: ") + ex.what();
             return false;
         }
+    }
+
+    bool FetchBuildIndex(const InstalledTitle& title, const std::string& actualBuildId, std::vector<BuildBundle>& out, std::string& error, const std::atomic_bool* cancel)
+    {
+        out.clear();
+        if (ApiBase().empty()) { error = "Configure an AeroFoil Remote in Settings."; return false; }
+        std::string url = ApiBase() + "/api/cheats/titles/" + FormatTitleId(title.titleId) + "/index?installed_version=" + std::to_string(title.version);
+        if (IsHex16(actualBuildId)) url += "&actual_build_id=" + actualBuildId;
+        const auto body = inst::curl::downloadToBufferWithAuth(url, inst::config::remoteUser, inst::config::remotePass, 30000L, cancel, &error);
+        if (body.empty()) return false;
+        try {
+            const auto json = nlohmann::json::parse(body);
+            for (const auto& item : json.at("builds")) {
+                BuildBundle build;
+                build.buildId = item.value("build_id", "");
+                if (!IsHex16(build.buildId)) continue;
+                build.entryCount = item.value("cheat_count", 0U);
+                build.versionKnown = item.contains("version") && item["version"].is_number_integer() && item["version"].get<std::int64_t>() >= 0;
+                if (build.versionKnown) build.version = item["version"].get<std::uint32_t>();
+                build.versionLabel = item.value("version_label", "");
+                build.compatibility = item.value("compatibility", "unknown");
+                ReadStringArray(json, "attributions", build.attributions);
+                out.push_back(std::move(build));
+            }
+            std::stable_sort(out.begin(), out.end(), [](const auto& a, const auto& b) {
+                const auto rank = [](const auto& state) { return state == "exact" ? 0 : state == "version_recommended" ? 1 : 2; };
+                return rank(a.compatibility) < rank(b.compatibility);
+            });
+            if (out.empty() && json.contains("provider_errors") && !json["provider_errors"].empty()) {
+                error = "No local codes; providers failed. Check AeroFoil database status.";
+                return false;
+            }
+            return true;
+        } catch (const std::exception& ex) { error = std::string("Invalid cheat index: ") + ex.what(); return false; }
+    }
+
+    std::string Diagnostics(const std::atomic_bool* cancel)
+    {
+        std::string error;
+        const auto body = inst::curl::downloadToBufferWithAuth(ApiBase() + "/api/client/status", inst::config::remoteUser, inst::config::remotePass, 10000L, cancel, &error);
+        std::string report = "UltraFoil " + inst::config::appVersion + "\n";
+        try {
+            const auto status = nlohmann::json::parse(body);
+            report += "AeroFoil " + status.value("version", "unknown") + " / API " + std::to_string(status.value("api_version", 0)) + "\n";
+            report += status.value("api_version", 0) >= 2 ? "Cheat index: supported\n" : "Cheat index: update server\n";
+            if (status.contains("cheat_database")) {
+                const auto& database = status["cheat_database"];
+                if (database.contains("source_commit") && database["source_commit"].is_string()) report += "Cheat DB: " + database["source_commit"].get<std::string>().substr(0, 12) + "\n";
+                if (database.contains("last_error") && database["last_error"].is_string()) report += "Sync error: " + database["last_error"].get<std::string>() + "\n";
+            }
+        } catch (...) { report += "Server: " + (error.empty() ? "invalid response" : error) + "\n"; }
+        Target target;
+        report += GetRunningTarget(target, error) ? "dmnt: ready / BID " + target.buildId : "dmnt: " + error;
+        std::error_code ec;
+        const auto space = std::filesystem::space(inst::config::appDir, ec);
+        if (!ec) report += "\nSD free: " + std::to_string(space.available / (1024 * 1024)) + " MiB";
+        return report;
     }
 
     bool ListInstalledTitles(std::vector<InstalledTitle>& out, std::string& error)
@@ -348,37 +422,25 @@ namespace inst::cheats {
             return false;
         }
         try {
-            const std::string directory = CheatDirectory(target);
             const std::string targetPath = CheatPath(target);
-            const std::string tempPath = targetPath + ".tmp";
-            std::filesystem::create_directories(directory);
-            std::ofstream temp(tempPath, std::ios::binary | std::ios::trunc);
-            if (!temp) {
-                error = "Unable to create the temporary cheat file.";
-                return false;
-            }
-            temp << entry.content;
-            if (entry.content.back() != '\n')
-                temp << '\n';
-            temp.flush();
-            temp.close();
-            if (!temp) {
-                std::filesystem::remove(tempPath);
-                error = "Unable to finish writing the cheat file.";
-                return false;
-            }
-
+            inst::files::RecoverPair(targetPath, MetadataPath(target));
+            auto state = ReadState(target);
+            std::string originalBackup;
             if (std::filesystem::exists(targetPath)) {
                 const std::string backupDir = inst::config::appDir + "/cheat_backups/" + FormatTitleId(target.titleId);
                 std::filesystem::create_directories(backupDir);
                 const std::string backupPath = backupDir + "/" + target.buildId + "." + std::to_string(armGetSystemTick()) + ".txt";
-                std::filesystem::rename(targetPath, backupPath);
+                std::filesystem::copy_file(targetPath, backupPath);
+                const bool managed = state.value("content_sha256", "") == ContentHash(ReadFile(targetPath));
+                originalBackup = managed ? state.value("original_backup", "") : backupPath;
             }
-            std::filesystem::rename(tempPath, targetPath);
-            if (!WriteMetadata(target, entry)) {
-                error = "Cheat installed, but its conflict metadata could not be saved.";
-                return true;
-            }
+            std::string content = entry.content;
+            if (content.back() != '\n') content += '\n';
+            const auto metadata = nlohmann::json({{"id", entry.id}, {"name", entry.name}, {"source", entry.source},
+                {"tags", entry.tags}, {"conflict_groups", entry.conflictGroups}, {"content_sha256", ContentHash(content)},
+                {"original_backup", originalBackup}, {"role", entry.role}, {"selected_ids", entry.selectedIds}}).dump(2);
+            if (!inst::files::CommitPair(targetPath, MetadataPath(target), content, metadata, error)) return false;
+            RecordAction(target, "installed");
             return true;
         } catch (const std::exception& ex) {
             error = ex.what();
@@ -389,21 +451,31 @@ namespace inst::cheats {
     bool Remove(const Target& target, std::string& error)
     {
         error.clear();
+        if (target.titleId == 0 || !IsHex16(target.buildId)) { error = "Invalid cheat target."; return false; }
         try {
             const std::string path = CheatPath(target);
+            inst::files::RecoverPair(path, MetadataPath(target));
             if (!std::filesystem::exists(path)) {
                 const std::string metadataPath = MetadataPath(target);
                 if (std::filesystem::exists(metadataPath))
                     std::filesystem::remove(metadataPath);
                 return true;
             }
-            if (!std::filesystem::remove(path)) {
-                error = "Unable to remove the cheat file.";
+            const auto state = ReadState(target);
+            if (state.value("content_sha256", "") != ContentHash(ReadFile(path))) {
+                error = "This file is unmanaged or has been edited outside UltraFoil. It was kept unchanged.";
                 return false;
             }
-            const std::string metadataPath = MetadataPath(target);
-            if (std::filesystem::exists(metadataPath))
-                std::filesystem::remove(metadataPath);
+            std::optional<std::string> original;
+            const auto originalPath = state.value("original_backup", "");
+            if (!originalPath.empty()) {
+                const auto prefix = inst::config::appDir + "/cheat_backups/" + FormatTitleId(target.titleId) + "/";
+                if (originalPath.rfind(prefix, 0) != 0 || originalPath.find("..") != std::string::npos)
+                    throw std::runtime_error("Invalid original backup path.");
+                original = ReadFile(originalPath);
+            }
+            if (!inst::files::CommitPair(path, MetadataPath(target), original, std::nullopt, error)) return false;
+            RecordAction(target, original ? "removed_and_restored_original" : "removed");
             return true;
         } catch (const std::exception& ex) {
             error = ex.what();
@@ -413,13 +485,16 @@ namespace inst::cheats {
 
     bool IsInstalled(const Target& target)
     {
-        return target.titleId != 0 && IsHex16(target.buildId) && std::filesystem::exists(CheatPath(target));
+        if (target.titleId == 0 || !IsHex16(target.buildId)) return false;
+        try { inst::files::RecoverPair(CheatPath(target), MetadataPath(target)); return std::filesystem::exists(CheatPath(target)); }
+        catch (...) { return false; }
     }
 
     bool GetInstalledMetadata(const Target& target, Entry& out)
     {
         out = {};
         try {
+            inst::files::RecoverPair(CheatPath(target), MetadataPath(target));
             std::ifstream input(MetadataPath(target), std::ios::binary);
             if (!input)
                 return false;
@@ -427,11 +502,14 @@ namespace inst::cheats {
             input >> json;
             if (!json.is_object())
                 return false;
+            if (!std::filesystem::exists(CheatPath(target)) || json.value("content_sha256", "") != ContentHash(ReadFile(CheatPath(target))))
+                return false;
             out.id = json.value("id", "");
             out.name = json.value("name", "Installed cheat");
             out.source = json.value("source", "unknown");
             ReadStringArray(json, "tags", out.tags);
             ReadStringArray(json, "conflict_groups", out.conflictGroups);
+            ReadStringArray(json, "selected_ids", out.selectedIds);
             return !out.id.empty();
         } catch (...) {
             return false;

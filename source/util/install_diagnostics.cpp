@@ -11,11 +11,29 @@
 
 #include "util/config.hpp"
 #include "util/error.hpp"
+#include "util/json.hpp"
 
 namespace inst::diag {
     namespace {
         std::mutex g_logMutex;
         std::string g_logPath;
+        std::string g_source;
+        std::string TimestampNow();
+
+        void AppendHistory(const std::string& item, const std::string& outcome, const std::string& category = "") {
+            std::lock_guard<std::mutex> lock(g_logMutex);
+            try {
+                const auto directory = inst::config::appDir + "/logs";
+                std::filesystem::create_directories(directory);
+                const auto path = directory + "/install-history.jsonl";
+                if (std::filesystem::exists(path) && std::filesystem::file_size(path) > 1024U * 1024U) {
+                    std::filesystem::remove(path + ".old"); std::filesystem::rename(path, path + ".old");
+                }
+                std::ofstream output(path, std::ios::app);
+                output << nlohmann::json({{"at", TimestampNow()}, {"source", g_source}, {"item", item},
+                    {"outcome", outcome}, {"category", category}}).dump() << '\n';
+            } catch (...) {}
+        }
 
         std::string ToLower(std::string value)
         {
@@ -59,6 +77,11 @@ namespace inst::diag {
             if (g_logPath.empty())
                 g_logPath = (logsDir / "install.log").string();
 
+            if (std::filesystem::exists(g_logPath, ec) && std::filesystem::file_size(g_logPath, ec) > 2U * 1024U * 1024U) {
+                std::filesystem::remove(g_logPath + ".old", ec);
+                std::filesystem::rename(g_logPath, g_logPath + ".old", ec);
+            }
+
             std::ofstream out(g_logPath, std::ios::out | std::ios::app);
             if (!out)
                 return;
@@ -83,6 +106,7 @@ namespace inst::diag {
 
     void StartSession(const std::string& source, std::size_t totalItems)
     {
+        { std::lock_guard<std::mutex> lock(g_logMutex); g_source = source; }
         std::ostringstream line;
         line << "Session start source=" << source << " items=" << totalItems << " verbose=" << (IsVerboseEnabled() ? "on" : "off");
         AppendLine("INFO", line.str());
@@ -108,6 +132,7 @@ namespace inst::diag {
     void RecordSuccess(const std::string& item)
     {
         AppendLine("INFO", "Install succeeded: " + item);
+        AppendHistory(item, "success");
     }
 
     InstallFailure ClassifyFailure(const std::string& errorText)
@@ -196,6 +221,7 @@ namespace inst::diag {
 
     void RecordFailure(const std::string& item, const InstallFailure& failure)
     {
+        AppendHistory(item, failure.canceled ? "cancelled" : "failed", failure.category);
         std::ostringstream line;
         line << "Install failed: " << item << " category=" << failure.category;
         if (!failure.code.empty())

@@ -9,6 +9,7 @@
 #include "ui/hddInstPage.hpp"
 #include "ui/instPage.hpp"
 #include "ui/optionsPage.hpp"
+#include "ui/cheatsPage.hpp"
 
 namespace inst::ui {
     class MainApplication;
@@ -29,6 +30,7 @@ namespace inst::ui {
             hddInstPage::Ref hddinstPage;
             instPage::Ref instpage;
             optionsPage::Ref optionspage;
+            CheatsPage::Ref cheatsPage;
         private:
             AppletFocusState lastFocusState = AppletFocusState_InFocus;
     };

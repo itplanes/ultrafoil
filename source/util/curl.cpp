@@ -659,7 +659,8 @@ namespace inst::curl {
         return "";
     }
 
-    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout) {
+    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout, const std::atomic_bool* cancel, std::string* error) {
+        if (error) error->clear();
         if (!ensureCurlGlobalInit()) {
             LOG_DEBUG("curl global init failed\n");
             return "";
@@ -675,6 +676,14 @@ namespace inst::curl {
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeLimitedDataBuffer);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &responseBody);
         curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
+        if (cancel) {
+            curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 0L);
+            curl_easy_setopt(curl_handle, CURLOPT_XFERINFODATA, cancel);
+            curl_easy_setopt(curl_handle, CURLOPT_XFERINFOFUNCTION,
+                +[](void* context, curl_off_t, curl_off_t, curl_off_t, curl_off_t) -> int {
+                    return static_cast<const std::atomic_bool*>(context)->load() ? 1 : 0;
+                });
+        }
 
         struct curl_slist* headerList = nullptr;
         const auto headers = buildRemoteHeaders(ourUrl, user, pass);
@@ -699,6 +708,10 @@ namespace inst::curl {
 
         if (result == CURLE_OK && responseCode >= 200 && responseCode < 300 && !responseBody.exceeded)
             return std::move(responseBody.data);
+
+        if (error) *error = (cancel && cancel->load()) ? "Request cancelled." :
+            responseBody.exceeded ? "Response exceeds the memory limit." :
+            "HTTP " + std::to_string(responseCode) + ": " + curl_easy_strerror(result);
 
         if (responseBody.exceeded)
             LOG_DEBUG("downloadToBufferWithAuth response too large url=%s\n", ourUrl.c_str());

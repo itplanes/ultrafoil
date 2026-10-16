@@ -2,6 +2,7 @@
 #include <string>
 #include <cstdint>
 #include <functional>
+#include <atomic>
 
 namespace inst::curl {
     using DownloadProgressCallback = std::function<void(std::uint64_t downloaded, std::uint64_t total)>;
@@ -15,5 +16,5 @@ namespace inst::curl {
     bool downloadFileWithAuth(const std::string ourUrl, const char *pagefilename, const std::string& user, const std::string& pass, long timeout = 5000);
     bool downloadImageWithAuth(const std::string ourUrl, const char *pagefilename, const std::string& user, const std::string& pass, long timeout = 5000);
     std::string downloadToBuffer (const std::string ourUrl, int firstRange = -1, int secondRange = -1, long timeout = 5000);
-    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout = 5000);
+    std::string downloadToBufferWithAuth(const std::string& ourUrl, const std::string& user, const std::string& pass, long timeout = 5000, const std::atomic_bool* cancel = nullptr, std::string* error = nullptr);
 }

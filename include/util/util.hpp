@@ -26,4 +26,5 @@ namespace inst::util {
     void playNavigationClick();
     void playNavigationClickIfNeeded(std::uint64_t buttonsDown);
     std::vector<std::string> checkForAppUpdate();
+    std::vector<std::string> GetAppUpdateInfo();
 }

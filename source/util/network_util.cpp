@@ -21,6 +21,8 @@ SOFTWARE.
 */
 
 #include "util/network_util.hpp"
+#include "util/http_range.hpp"
+#include <cstdio>
 
 #include <switch.h>
 #include <curl/curl.h>
@@ -173,7 +175,27 @@ namespace tin::network
     {
         std::function<size_t (u8* bytes, size_t size)>* streamFunc = nullptr;
         bool hadException = false;
+        long responseCode = 0;
+        size_t offset = 0, expectedSize = 0, received = 0;
+        bool validRange = false;
     };
+
+    static size_t ParseRangeHeader(char* bytes, size_t size, size_t count, void* userData)
+    {
+        auto* ctx = static_cast<StreamCallbackContext*>(userData);
+        const size_t length = size * count;
+        const std::string line(bytes, length);
+        if (line.rfind("HTTP/", 0) == 0) {
+            std::sscanf(line.c_str(), "HTTP/%*s %ld", &ctx->responseCode);
+            ctx->validRange = false;
+        } else {
+            std::string lower = line;
+            std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return std::tolower(c); });
+            if (lower.rfind("content-range:", 0) == 0)
+                ctx->validRange = inst::http::ValidContentRange(std::string_view(line).substr(14), ctx->offset, ctx->expectedSize);
+        }
+        return length;
+    }
 
     static size_t ParseHTMLDataCallback(char* bytes, size_t size, size_t numItems, void* userData)
     {
@@ -185,10 +207,13 @@ namespace tin::network
             return 0;
 
         const size_t numBytes = size * numItems;
+        if (ctx->responseCode != 206 || !ctx->validRange || numBytes > ctx->expectedSize - ctx->received)
+            return 0;
         try {
-            if (*ctx->streamFunc != nullptr)
-                return (*ctx->streamFunc)((u8*)bytes, numBytes);
-            return numBytes;
+            const auto written = *ctx->streamFunc != nullptr ? (*ctx->streamFunc)((u8*)bytes, numBytes) : numBytes;
+            if (written > numBytes) return 0;
+            ctx->received += written;
+            return written;
         } catch (...) {
             ctx->hadException = true;
             return 0;
@@ -196,7 +221,7 @@ namespace tin::network
     }
 
     static int StreamHttpRangeForUrl(const std::string& url, size_t offset, size_t size,
-        const std::function<size_t (u8* bytes, size_t size)>& streamFunc)
+        const std::function<size_t (u8* bytes, size_t size)>& streamFunc, const std::string& entityTag = "")
     {
         if (size == 0)
             return 0;
@@ -205,6 +230,8 @@ namespace tin::network
         auto writeDataFunc = streamFunc;
         StreamCallbackContext callbackCtx;
         callbackCtx.streamFunc = &writeDataFunc;
+        callbackCtx.offset = offset;
+        callbackCtx.expectedSize = size;
         CURL* curl = curl_easy_init();
         if (!curl)
             THROW_FORMAT("Failed to initialize curl\n");
@@ -221,12 +248,20 @@ namespace tin::network
         curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 8L);
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 30L);
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &ParseRangeHeader);
+        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &callbackCtx);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &callbackCtx);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &ParseHTMLDataCallback);
         std::string authValue;
         ApplyBasicAuth(curl, authValue);
 
         struct curl_slist* headerList = nullptr;
+        if (!entityTag.empty() && entityTag.rfind("W/", 0) != 0)
+            headerList = curl_slist_append(headerList, ("If-Range: " + entityTag).c_str());
         std::string versionValue;
         std::string revisionValue;
         BuildVersionAndRevision(versionValue, revisionValue);
@@ -260,7 +295,9 @@ namespace tin::network
         if (callbackCtx.hadException)
             return 1999;
 
-        if (rc == CURLE_OK && httpCode == 206)
+        if (!callbackCtx.validRange || callbackCtx.responseCode != 206)
+            return httpCode >= 400 ? static_cast<int>(httpCode) : 1998;
+        if (rc == CURLE_OK && httpCode == 206 && callbackCtx.received == size)
             return 0;
 
         LOG_DEBUG("Range request failed url=%s range=%s http=%lu curl=%d\n",
@@ -269,7 +306,7 @@ namespace tin::network
         if (httpCode != 0 && httpCode != 206)
             return static_cast<int>(httpCode);
 
-        return 1000 + static_cast<int>(rc);
+        return 1000 + static_cast<int>(rc == CURLE_OK ? CURLE_PARTIAL_FILE : rc);
     }
 
     HTTPHeader::HTTPHeader(std::string url) :
@@ -501,12 +538,13 @@ namespace tin::network
                     if (remaining == 0)
                         return 0;
 
-                    const int rc = StreamHttpRangeForUrl(url, currentOffset, remaining, trackingFunc);
+                    const auto entityTag = !m_isJbod && m_header.HasValue("etag") ? m_header.GetValue("etag") : "";
+                    const int rc = StreamHttpRangeForUrl(url, currentOffset, remaining, trackingFunc, entityTag);
                     if (rc == 0)
                         return 0;
 
                     const bool fatal =
-                        rc == 1999 ||
+                        rc == 1999 || rc == 1998 ||
                         rc == 401 ||
                         rc == 403 ||
                         rc == 404 ||

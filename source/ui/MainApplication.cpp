@@ -36,6 +36,7 @@ namespace inst::ui {
         this->remoteinstPage = remoteInstPage::New();
         this->instpage = instPage::New();
         this->optionspage = optionsPage::New();
+        this->cheatsPage = CheatsPage::New();
         this->mainPage->SetOnInput(std::bind(&MainPage::onInput, this->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->netinstPage->SetOnInput(std::bind(&netInstPage::onInput, this->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->remoteinstPage->SetOnInput(std::bind(&remoteInstPage::onInput, this->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
@@ -45,6 +46,7 @@ namespace inst::ui {
 
         this->AddThread([this]() {
             this->RefreshInputDevice();
+            this->cheatsPage->Poll();
         });
 
         this->AddThread([this]() {

@@ -6,6 +6,7 @@
 #include <curl/curl.h>
 #include <regex>
 #include <mutex>
+#include <array>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include "switch.h"
@@ -19,6 +20,8 @@
 namespace inst::util {
     namespace {
         std::mutex gAudioPlaybackMutex;
+        std::mutex gAppUpdateMutex;
+        std::vector<std::string> gAppUpdateInfo;
         Mix_Chunk* gNavigationClickChunk = nullptr;
         std::string gNavigationClickLoadedPath;
         bool gNavigationClickAudioOpen = false;
@@ -431,15 +434,26 @@ namespace inst::util {
             playNavigationClick();
     }
     
+   std::vector<std::string> GetAppUpdateInfo() {
+        std::lock_guard<std::mutex> lock(gAppUpdateMutex);
+        return gAppUpdateInfo;
+   }
+
    std::vector<std::string> checkForAppUpdate () {
-        // UltraFoil must never consume CyberFoil release artifacts. Enable this
-        // again only after UltraFoil has its own release endpoint.
-        if (inst::config::appName == "UltraFoil")
-            return {};
+        const bool ultrafoil = inst::config::appName == "UltraFoil";
         try {
-            std::string jsonData = inst::curl::downloadToBuffer("https://api.github.com/repos/luketanti/CyberFoil/releases/latest", 0, 0, 1000L);
+            std::string jsonData = inst::curl::downloadToBuffer(ultrafoil ? "https://api.github.com/repos/itplanes/ultrafoil/releases/latest" : "https://api.github.com/repos/luketanti/CyberFoil/releases/latest", -1, -1, 5000L);
             if (jsonData.size() == 0) return {};
             nlohmann::json ourJson = nlohmann::json::parse(jsonData);
+            if (ultrafoil) {
+                const auto parseVersion = [](const std::string& value) {
+                    std::smatch match; std::array<int, 3> version{};
+                    if (!std::regex_match(value, match, std::regex("v?([0-9]+)\\.([0-9]+)\\.([0-9]+)"))) return version;
+                    for (int i = 0; i < 3; ++i) version[i] = std::stoi(match[i + 1].str());
+                    return version;
+                };
+                if (parseVersion(ourJson.value("tag_name", "")) <= parseVersion(inst::config::appVersion)) return {};
+            }
             if (ourJson["tag_name"].get<std::string>() != inst::config::appVersion) {
                 std::string downloadUrl;
                 if (ourJson.contains("assets") && ourJson["assets"].is_array() && !ourJson["assets"].empty()
@@ -458,7 +472,7 @@ namespace inst::util {
                     downloadUrl,
                     releaseNotes
                 };
-                inst::config::updateInfo = ourUpdateInfo;
+                { std::lock_guard<std::mutex> lock(gAppUpdateMutex); gAppUpdateInfo = ourUpdateInfo; }
                 return ourUpdateInfo;
             }
         } catch (...) {}
