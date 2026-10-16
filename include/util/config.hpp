@@ -14,6 +14,11 @@ namespace inst::config {
     static const std::string remoteIconsDir = appDir + "/remote_icons";
     static const std::string legacyShopIconsDir = appDir + "/shop_icons";
     static const std::string appVersion = std::string(APP_VERSION);
+#ifdef APP_BUILD_ID
+    static const std::string appBuildId = std::string(APP_BUILD_ID);
+#else
+    static const std::string appBuildId = "unknown";
+#endif
 #ifdef APP_GIT_META
     static const std::string appGitMeta = std::string(APP_GIT_META);
 #else

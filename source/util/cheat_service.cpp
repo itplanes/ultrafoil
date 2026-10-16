@@ -263,7 +263,7 @@ namespace inst::cheats {
     {
         std::string error;
         const auto body = inst::curl::downloadToBufferWithAuth(ApiBase() + "/api/client/status", inst::config::remoteUser, inst::config::remotePass, 10000L, cancel, &error);
-        std::string report = "UltraFoil " + inst::config::appVersion + "\n";
+        std::string report = "UltraFoil " + inst::config::appVersion + "\nBuild: " + inst::config::appBuildId + "\n";
         try {
             const auto status = nlohmann::json::parse(body);
             report += "AeroFoil " + status.value("version", "unknown") + " / API " + std::to_string(status.value("api_version", 0)) + "\n";
