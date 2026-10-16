@@ -29,5 +29,11 @@ int main() {
     assert(read(file) == "new" && read(meta) == "new metadata");
     assert(inst::files::CommitPair(file, meta, std::nullopt, std::nullopt, error));
     assert(!std::filesystem::exists(file) && !std::filesystem::exists(meta));
+    assert(!inst::files::CommitPair(file, meta, "new installation", "metadata", error,
+        [&](const auto& from, const auto& to) {
+            if (to == meta) throw std::runtime_error("Simulated first-install metadata failure");
+            std::filesystem::rename(from, to);
+        }));
+    assert(!std::filesystem::exists(file) && !std::filesystem::exists(meta));
     std::filesystem::remove_all(root);
 }

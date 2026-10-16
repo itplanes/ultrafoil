@@ -542,6 +542,8 @@ namespace tin::network
                     const int rc = StreamHttpRangeForUrl(url, currentOffset, remaining, trackingFunc, entityTag);
                     if (rc == 0)
                         return 0;
+                    if (rc == 1998)
+                        THROW_FORMAT("HTTP range response mismatch. The remote file changed or the server ignored the requested range. Restart this installation.");
 
                     const bool fatal =
                         rc == 1999 || rc == 1998 ||

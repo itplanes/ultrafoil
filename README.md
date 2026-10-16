@@ -44,6 +44,8 @@ The updated client requires AeroFoil client API v2 (`GET /api/client/status` and
 
 UltraFoil uses devkitPro, libnx, and Plutonium.
 
+GitHub Actions pins the verified devkitPro image digest rather than following `latest`.
+
 ```sh
 make -j$(nproc)
 ```

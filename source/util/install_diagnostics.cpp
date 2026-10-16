@@ -153,6 +153,13 @@ namespace inst::diag {
             return failure;
         }
 
+        if (ContainsAny(lower, {"range response", "connection", "network", "timed out", "timeout", "curl"})) {
+            failure.category = "Network / Remote";
+            failure.summary = "[ERROR] Remote transfer could not continue safely.";
+            failure.recommendation = "Check the connection, proxy and server range support; retry the installation.";
+            return failure;
+        }
+
         if (ContainsAny(lower, {"signature", "master key", "key mismatch", "failed to import ticket", "ticket / cert", "tik", "cert", "rights id"})) {
             failure.category = "Signature/Keys issue";
             failure.summary = "[ERROR] Missing required keys or invalid signatures.";

@@ -8,6 +8,16 @@
 #include "util/offline_db_update.hpp"
 
 using namespace pu::ui::render;
+namespace {
+    struct JoinOnExit {
+        std::thread& update;
+        std::thread& database;
+        ~JoinOnExit() {
+            if (update.joinable()) update.join();
+            if (database.joinable()) database.join();
+        }
+    };
+}
 int main(int argc, char* argv[])
 {
     bool appInitialized = false;
@@ -20,6 +30,7 @@ int main(int argc, char* argv[])
         auto main = inst::ui::MainApplication::New(renderer);
         std::thread updateThread;
         std::thread offlineDbUpdateCheckThread;
+        JoinOnExit joinThreads{updateThread, offlineDbUpdateCheckThread};
         if (inst::config::autoUpdate && inst::util::getIPAddress() != "1.0.0.127") updateThread = std::thread(inst::util::checkForAppUpdate);
         inst::offline::dbupdate::ResetStartupCheckState();
         if (inst::config::offlineDbAutoCheckOnStartup && inst::util::getIPAddress() != "1.0.0.127") {
@@ -30,6 +41,7 @@ int main(int argc, char* argv[])
         }
         main->Prepare();
         main->ShowWithFadeIn();
+        main->cheatsPage->Stop();
         if (updateThread.joinable()) {
             updateThread.join();
         }

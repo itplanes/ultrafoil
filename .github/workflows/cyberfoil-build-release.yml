@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: devkitpro/devkita64:latest
+      image: devkitpro/devkita64@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
 
     steps:
       - name: Checkout (with submodules)
@@ -24,7 +24,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          dkp-pacman -S --noconfirm --needed switch-ntfs-3g switch-lwext4
           make -j"$(nproc)" RELEASE=1
 
           # Your Makefile outputs ./ultrafoil.nro (TARGET := ultrafoil)

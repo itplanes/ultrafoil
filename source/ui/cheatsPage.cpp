@@ -28,9 +28,20 @@ namespace {
         return "Insufficient matching information";
     }
     std::string BoundedLines(const std::string& text, int skip = 0) {
-        const int lines = static_cast<int>(std::count(text.begin(), text.end(), '\n')) + 1;
+        std::string wrapped; std::size_t cells = 0;
+        for (std::size_t index = 0; index < text.size();) {
+            const auto c = static_cast<unsigned char>(text[index]);
+            const std::size_t length = c < 0x80 ? 1 : c < 0xE0 ? 2 : c < 0xF0 ? 3 : 4;
+            if (index + length > text.size()) break;
+            const std::size_t width = c < 0x80 ? 1 : 2;
+            if (text[index] == '\n') cells = 0;
+            else if (cells + width > 58) { wrapped += '\n'; cells = width; }
+            else cells += width;
+            wrapped.append(text, index, length); index += length;
+        }
+        const int lines = static_cast<int>(std::count(wrapped.begin(), wrapped.end(), '\n')) + 1;
         skip = std::min(skip, std::max(0, lines - 17));
-        std::istringstream input(text); std::string line, out; int count = 0;
+        std::istringstream input(wrapped); std::string line, out; int count = 0;
         while (skip-- > 0 && std::getline(input, line)) {}
         while (std::getline(input, line) && count++ < 17) out += Fit(line, 58) + "\n";
         return out;
