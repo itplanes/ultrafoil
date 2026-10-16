@@ -244,6 +244,7 @@ namespace inst::cheats {
                 build.versionLabel = item.value("version_label", "");
                 build.compatibility = item.value("compatibility", "unknown");
                 ReadStringArray(json, "attributions", build.attributions);
+                ReadStringArray(json, "provider_errors", build.providerErrors);
                 out.push_back(std::move(build));
             }
             std::stable_sort(out.begin(), out.end(), [](const auto& a, const auto& b) {

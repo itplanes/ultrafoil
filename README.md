@@ -38,6 +38,8 @@ The manager has separate game/build/code lists and a detail panel. `A` selects c
 
 Installations use a two-file recovery journal for payload and ownership metadata. Updating creates backups; removal verifies the installed hash and restores the original replaced file when available. External/edited files are protected. Legacy selections without ownership hashes require a backed-up replacement before managed removal is available. Installing a file does not verify whether an overlay has enabled it.
 
+Atmosphere's default activation and saved toggles affect what runs after a game launch; see its [official cheat-loading documentation](https://github.com/Atmosphere-NX/Atmosphere/blob/master/docs/features/cheats.md). UltraFoil leaves these system-wide settings and overlay toggles under the user's control.
+
 The updated client requires AeroFoil client API v2 (`GET /api/client/status` and `GET /api/cheats/titles/<title_id>/index`). HTTP range retries continue at the received offset and validate `Content-Range` before forwarding bytes; this is reconnect continuation within the current installation, not recovery of an installation after restarting the app. Optional application update reminders use only the UltraFoil release repository.
 
 ## Build

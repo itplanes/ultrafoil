@@ -38,6 +38,7 @@ namespace inst::cheats {
         std::vector<std::string> conflictGroups;
         std::string compatibility = "unknown";
         bool versionKnown = false;
+        std::vector<std::string> providerErrors;
     };
 
     bool GetRunningTarget(Target& out, std::string& error);

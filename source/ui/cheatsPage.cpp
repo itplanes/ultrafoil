@@ -151,8 +151,10 @@ namespace inst::ui {
             text += "\n\nA: list available builds\nX: rescan installed games\nDownloaded / installed / enabled\nare different states.";
         } else if (view == View::Builds && index < builds.size()) {
             const auto& build = builds[index];
-            text = "BID: " + build.buildId + "\n" + Match(build.compatibility) + "\nAdapted version: " + (build.versionKnown ? build.versionLabel + " / v" + std::to_string(build.version) : "unknown") + "\nCodes: " + std::to_string(build.entryCount);
-            if (!build.attributions.empty()) text += "\nAuthor/source:\n" + build.attributions.front();
+            text = "BID: " + build.buildId + "\n" + Match(build.compatibility) + "\nInternal version: " + (build.versionKnown ? "v" + std::to_string(build.version) : "unknown") + "\nGame display version: not provided\nCodes: " + std::to_string(build.entryCount);
+            if (!build.attributions.empty()) text += "\nAuthor/source:";
+            for (const auto& author : build.attributions) text += "\n" + author;
+            for (const auto& warning : build.providerErrors) text += "\nProvider warning: " + warning;
             if (build.versionKnown && build.version > games[gameIndex].version) text += "\nA newer version has codes.\nDo not install it for this version.";
             text += "\n\nA: download only this build's codes\nNo code files are installed yet.";
         } else if (view == View::Entries && index < entries.size()) {
@@ -180,6 +182,11 @@ namespace inst::ui {
         }
         if (!count) { status->SetText("Select at least one code with A."); return; }
         const auto masters = std::count_if(entries.begin(), entries.end(), [](const auto& entry) { return entry.role == "master"; });
+        std::size_t selectedMasters = 0;
+        for (std::size_t i = 0; i < entries.size(); ++i) if (selected[i] && entries[i].role == "master") ++selectedMasters;
+        if (selectedMasters > 1) {
+            mainApp->CreateShowDialog("Multiple master codes", "Choose one master variant before installing.\nThe dependency between these codes is not known.", {"OK"}, true); return;
+        }
         if (masters && std::none_of(entries.begin(), entries.end(), [&](const auto& entry) {
             const auto index = static_cast<std::size_t>(&entry - entries.data()); return entry.role == "master" && selected[index];
         })) { status->SetText("Select the required master code first."); return; }
@@ -200,7 +207,7 @@ namespace inst::ui {
             else { std::vector<inst::cheats::InstalledTitle> current; if (inst::cheats::ListInstalledTitles(current, error)) valid = std::any_of(current.begin(), current.end(), [&](const auto& title) { return title.titleId == expected.titleId && title.version == expected.version; }); }
             const bool ok = valid && inst::cheats::Install(target, candidate, error);
             if (!valid) error = "Game identity/version changed. Rescan before installing.";
-            return [this, ok, error]() { status->SetText(ok ? "Installed. Restart game / reload overlay. Enabled state is not changed." : Fit(error, 100)); ShowDetail(); };
+            return [this, ok, error]() { status->SetText(ok ? "Installed. Restart / reload overlay. Check the actual activation there." : Fit(error, 100)); ShowDetail(); };
         }, false);
     }
     void CheatsPage::OnInput(u64 down, u64, u64, pu::ui::Touch) {
