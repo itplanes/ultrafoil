@@ -176,6 +176,9 @@ namespace inst::ui {
         inst::cheats::Entry candidate; candidate.id = "selection"; candidate.name = "UltraFoil selected codes"; candidate.source = "AeroFoil";
         std::map<std::string, std::vector<std::string>> groups; std::size_t count = 0;
         for (std::size_t i = 0; i < entries.size(); ++i) if (selected[i]) {
+            if (candidate.content.size() + entries[i].content.size() + 2 > 1024U * 1024U) {
+                status->SetText("Selection exceeds 1 MiB. Select fewer codes."); return;
+            }
             candidate.content += entries[i].content + "\n\n"; ++count;
             candidate.selectedIds.push_back(entries[i].id);
             if (entries[i].role != "master") for (const auto& group : entries[i].conflictGroups) groups[group].push_back(entries[i].name);
