@@ -1,0 +1,23 @@
+Makefile
+  s_5e6d4c9816cdc5::t_c3d2929830e756 56,75
+include/util/config.hpp
+  s_5e6d4c9816cdc5::t_952798e4d0dd09 17-21
+source/util/cheat_service.cpp
+  s_5e6d4c9816cdc5::t_69b379b5b0a635 266
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "1b86153c517205a655a2661a9934c5e685e79760",
+  "prompts": {},
+  "sessions": {
+    "s_5e6d4c9816cdc5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a144e1-6285-73e0-b624-738d5450108e",
+        "model": "unknown"
+      },
+      "human_author": "Cian <cian@macbook.local>"
+    }
+  }
+}
