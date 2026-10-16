@@ -1,0 +1,37 @@
+source/main.cpp
+  s_a966402e60fc9c::t_93eee38f0f9083 11-20,33,44
+source/ui/cheatsPage.cpp
+  s_a966402e60fc9c::t_b9e14d073676d8 31-42,44
+source/util/install_diagnostics.cpp
+  s_a966402e60fc9c::t_74defa8a07ca91 156-162
+source/util/network_util.cpp
+  s_a966402e60fc9c::t_910a11c635a8fd 545-546
+.github/workflows/cyberfoil-build-dev.yml
+  s_a966402e60fc9c::t_1c53b19ec1ef18 18
+.github/workflows/cyberfoil-build-master.yml
+  s_a966402e60fc9c::t_891adc90ca690e 19
+.github/workflows/cyberfoil-build-release.yml
+  s_a966402e60fc9c::t_25156532f96621 13
+ONBOARDING.md
+  s_a966402e60fc9c::t_d45025fc595741 1-196
+README.md
+  s_a966402e60fc9c::t_6d282e22982f9d 47-48
+tests/test_file_transaction.cpp
+  s_a966402e60fc9c::t_9c0a3261d5d954 32-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "b11fbfeea45ac6fded55713a6ba86b0378efd172",
+  "prompts": {},
+  "sessions": {
+    "s_a966402e60fc9c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f4c6c-88ad-7411-bf2b-8e9feef7f083",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Cian <cian@macbook.local>"
+    }
+  }
+}
